@@ -1,0 +1,380 @@
+
+<html>
+    <head>
+        <title>Chaosas uzd 2</title>
+        <style type="text/css">
+            canvas {
+                border: 4px solid #A0A0A0;
+                background: black;
+                display: block;
+            }
+        </style>
+    </head>
+    <body style="background-color:#282c34;">
+    <canvas id="sphere3d" width="500" height="500">
+    	Your browser does not support HTML5 Canvas.
+    </canvas>
+	    <canvas id="plane" width="500" height="500">
+    	Your browser does not support HTML5 Canvas.
+    </canvas>
+    <script>
+
+    var ctx
+    var sphere = new Sphere3D();
+    var rotationX = 0;
+    var rotationY = 0;
+    var distance = 900;
+    var spherePartSize = 3.1
+    var height
+    var width
+    var mouseClickedSphere = false
+    var saveMousePos
+    var errorDistance = 0.6
+    var drawError = 4
+    var maxDis = 0
+
+    var ctxPlane
+    var intervalDelay = 20
+    var heightPlane, widthPlane
+    var mouseClickedPlane = false
+    var screenArray
+
+    initPlane()
+    initSphere()
+
+    function Point3D() {
+        this.x = 0;
+        this.y = 0;
+        this.z = 0;
+        this.isColored = false
+        this.changed = true
+    }
+
+    function Sphere3D(radius) {
+        this.stepSize = 0.028
+        
+        this.point = new Array();
+        this.color = "rgb(100,0,255)"
+        this.radius = (typeof(radius) == "undefined") ? 20.0 : radius;
+        this.radius = (typeof(radius) != "number") ? 20.0 : radius;
+        this.numberOfVertexes = 0;
+
+        for(alpha = 0; alpha <= 6.28; alpha += this.stepSize) {
+            p = this.point[this.numberOfVertexes] = new Point3D();
+            
+            p.x = Math.cos(alpha) * this.radius;
+            p.y = 0;
+            p.z = Math.sin(alpha) * this.radius;
+
+            this.numberOfVertexes++;
+        }
+
+        for(var direction = 1; direction >= -1; direction -= 2) {
+            for(var beta = this.stepSize; beta < 2; beta += this.stepSize) {
+                var radius = Math.cos(beta) * this.radius;
+                var fixedY = Math.sin(beta) * this.radius * direction;
+
+                for(var alpha = 0; alpha < 6.28; alpha += this.stepSize) {
+                    p = this.point[this.numberOfVertexes] = new Point3D();
+
+                    p.x = Math.cos(alpha) * radius;
+                    p.y = fixedY;
+                    p.z = Math.sin(alpha) * radius;
+
+                    this.numberOfVertexes++;
+                }
+            }
+        }
+    }
+    function colorPoints(points){
+        getScreenData()
+        for(let i = 0; i < points.length; i++){
+            if(points[i].z > 0){
+                let x = ((parseInt((points[i].x) * 10)) * -1)
+                let y = ((parseInt((points[i].y) * 10)) * -1)
+                x -= 10
+                y -= 10
+                if(x >= -250 && x < 250 && y >= -250 && y < 250){
+                    if(screenArray[x + 250][y + 250] != 0){     
+                        points[i].isColored = true
+                    }
+                    else {
+                        points[i].isColored = false
+                    }
+                }
+                else {
+                    //console.log(x, y)
+                }
+            }
+        }
+        return points
+    }
+
+    function rotateX(point, radians) {
+        var y = point.y;
+        point.y = (y * Math.cos(radians)) + (point.z * Math.sin(radians) * -1.0);
+        point.z = (y * Math.sin(radians)) + (point.z * Math.cos(radians));
+    }
+
+    function rotateY(point, radians) {
+        var x = point.x;
+        point.x = (x * Math.cos(radians)) + (point.z * Math.sin(radians) * -1.0);
+        point.z = (x * Math.sin(radians)) + (point.z * Math.cos(radians));
+    }
+
+    function rotateZ(point, radians) {
+        var x = point.x;
+        point.x = (x * Math.cos(radians)) + (point.y * Math.sin(radians) * -1.0);
+        point.y = (x * Math.sin(radians)) + (point.y * Math.cos(radians));
+    }
+    function projection(xy, z, xyOffset, zOffset, distance) {
+        return ((distance * xy) / (z - zOffset)) + xyOffset;
+    }
+    function renderSphere() {
+        let x, y
+        let p = new Point3D();
+        let maxX = -9999
+        let maxY = -9999
+        let minX = 9999
+        let minY = 9999
+        
+        ctx.save();
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.globalCompositeOperation = "lighter";
+        let count = 0
+        for(i = 0; i < sphere.numberOfVertexes; i++) {
+            
+            p.x = sphere.point[i].x;
+            p.y = sphere.point[i].y;
+            p.z = sphere.point[i].z;
+
+            rotateX(p, rotationX);
+            rotateY(p, rotationY);
+            //rotateZ(p, rotation);
+
+            x = projection(p.x, p.z, width/2.0, 100.0, distance);
+            y = projection(p.y, p.z, height/2.0, 100.0, distance);
+
+            // if(x < minX) minX = x
+            // if(y < minY) minY = y
+            // if(x > maxX) maxX = x
+            // if(y > maxY) maxY = y
+            
+            // if((Math.abs(x - maxX) < drawError)) count += 1
+            let temp = calDisFromCentre(x - 250, y - 250)
+            if(maxDis < temp) maxDis = temp
+
+            if(Math.abs(calDisFromCentre(x - 250, y - 250) - maxDis) > drawError){
+                count += 1
+
+                if(!sphere.point[i].isColored){
+                    if((x >= 0) && (x < width)) {
+                        if((y >= 0) && (y < height)) {
+                            if(p.z < 0) {
+                                //drawPoint(ctx, x, y, 3, "rgba(200,200,200,0.6)");
+                            } else {
+                                //console.log(x, y)
+                                drawPointWithGradient(ctx, x, y, spherePartSize, "rgb(220,220,220)", 0.8);
+                            }
+                        }
+                    }                 
+                }
+                else{
+                    if((x >= 0) && (x < width)) {
+                        if((y >= 0) && (y < height)) {
+                            if(p.z < 0) {
+                                //drawPoint(ctx, x, y, 3, "rgba(20,200,20,0.6)");
+                            } else {
+                                drawPointWithGradient(ctx, x, y, spherePartSize, "rgb(22,220,22)", 0.8);
+                            }
+                        }
+                    }  
+                }
+            }
+        }
+        ctx.restore();
+    }
+
+    function drawPoint(ctx, x, y, size, color) {
+        ctx.save()
+        ctx.beginPath();
+        ctx.rect(x, y, size, size);
+        ctx.fillStyle = color
+        ctx.fill();
+        ctx.restore()
+    }
+
+    function drawPointWithGradient(ctx, x, y, size, color, gradient) {
+        ctx.save();
+        ctx.translate(x, y);
+
+        ctx.fillStyle = color
+        ctx.fillRect(-size,-size,size*2,size*2);
+        ctx.restore();
+    }
+
+    function calDisFromCentre(x, y){
+        return Math.sqrt( Math.pow(x, 2) + Math.pow(y, 2) )
+    }
+
+    function initSphere(){
+        var canvas = document.getElementById("sphere3d");
+        width = canvas.getAttribute("width");
+        height = canvas.getAttribute("height");
+        ctx = canvas.getContext('2d')
+        canvas.addEventListener("mouseup", doMouseUpSphere, false)
+        canvas.addEventListener("mousedown", doMouseDownSphere, false)
+        canvas.addEventListener('mousemove', doMouseMoveSphere, false);
+        sphere.point = colorPoints(sphere.point)
+
+        setInterval(renderSphere, 1000/30);
+        //renderSphere()
+        //Sphere3D.renderSphere()
+        
+    }
+
+    function doMouseMoveSphere(evt){
+        var c = document.getElementById("sphere3d");
+        var mousePos = getMousePos(c, evt);
+        var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+        if(mouseClickedSphere){
+            //console.log(message)
+            //saveMousePos = getMousePos(c, evt);
+            if(saveMousePos.x == mousePos.x || saveMousePos.y == mousePos.y){
+                saveMousePos = getMousePos(c, evt);
+            }
+            else {
+                let difX = mousePos.x - saveMousePos.x
+                let difY =mousePos.y - saveMousePos.y
+                if(mousePos.x > saveMousePos.x){
+                    rotationY += difX * 0.0001
+                }
+                else rotationY += difX * 0.0001
+                if(mousePos.y > saveMousePos.y){
+                    rotationX += difY * 0.0001
+                }
+                else rotationX += difY * 0.0001
+            }
+        }
+        //
+        //writeMessage(c, message);
+    }
+    function doMouseDownSphere(evt){
+        console.log("mouseDown")
+        var c = document.getElementById("sphere3d");
+        saveMousePos = getMousePos(c, evt);
+        mouseClickedSphere = true
+    }
+    function doMouseUpSphere(evt){
+        console.log("mouseup")
+        mouseClickedSphere = false
+    }
+
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
+//@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+
+    function initPlane() {
+        var c = document.getElementById("plane");
+        ctxPlane = c.getContext("2d");
+        widthPlane = c.getAttribute("width");
+        heightPlane = c.getAttribute("height");
+        c.addEventListener("mouseup", doMouseUpPlane, false)
+        c.addEventListener("mousedown", doMouseDownPlane, false)
+        c.addEventListener('mousemove', doMouseMovePlane, false);
+
+        screenArray = new Array(500)
+        for(let i = 0; i < screenArray.length; i++){
+            screenArray[i] = new Array(500)
+        }
+
+        draw()
+        getScreenData()
+
+    }
+
+    function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    return {
+        x: evt.clientX - rect.left,
+        y: evt.clientY - rect.top
+    };
+    }
+
+    function doMouseMovePlane(evt){
+        var c = document.getElementById("plane");
+        var mousePos = getMousePos(c, evt);
+        var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+        let offset = 50
+        if(mouseClickedPlane){
+           // console.log(message)
+            ctxPlane.beginPath();
+            ctxPlane.rect(0, 0, width, height);
+            ctxPlane.fillStyle = "#000000"
+            ctxPlane.fill();
+            drawTriangle(mousePos.x - offset, mousePos.y - offset, 
+                         mousePos.x + 100 - offset, mousePos.y - offset, 
+                         mousePos.x - offset, mousePos.y + 100 - offset)
+            sphere.point = colorPoints(sphere.point)
+        }
+        //
+        //writeMessage(c, message);
+    }
+    function doMouseDownPlane(evt){
+        console.log("mouseDown")
+        mouseClickedPlane = true
+    }
+    function doMouseUpPlane(evt){
+        console.log("mouseup")
+        mouseClickedPlane = false
+    }
+
+    function draw(){
+        ctxPlane.beginPath();
+        ctxPlane.rect(0, 0, width, height);
+        ctxPlane.fillStyle = "#000001"
+        ctxPlane.fill();
+        //ctxPlane.stroke();
+
+        drawTriangle(100, 100, 100, 200, 200, 100)
+    }
+
+    function drawTriangle(x1, y1, x2, y2, x3, y3){
+        ctxPlane.beginPath()
+        ctxPlane.lineTo(x1, y1)
+        ctxPlane.lineTo(x2, y2)
+        ctxPlane.lineTo(x3, y3)
+        ctxPlane.closePath()
+        ctxPlane.lineWidth = 10;
+        ctxPlane.strokeStyle = '#ff0000';
+        ctxPlane.fillStyle = "#ff0000"
+        ctxPlane.fill()
+        ctxPlane.stroke();
+    }
+
+    function getScreenData(){
+        var context = document.getElementById('plane').getContext('2d');
+        var imgd = context.getImageData(0, 0, widthPlane, heightPlane);
+        var pix = imgd.data;
+
+        let x = -1
+        for(let i = 0; i < 250000; i += 500){
+            // console.log(heightPlane * widthPlane)
+            let y = 0
+            x += 1
+            
+            for(let j  = 0; j < (500 * 4); j += 4){
+                screenArray[y][x] = pix[(i * 4 + j)  ]
+                y += 1
+
+
+            }
+        }
+    }
+
+        </script>
+        <!-- <script src="plane.js" type="text/javascript"></script> -->
+</body>
+</html>

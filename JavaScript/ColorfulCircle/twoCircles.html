@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<body style="background-color:#282c34;">
+
+<canvas id="canvas" width="300" height="600" style="border:1px solid #d3d3d3;"></canvas>
+
+<script>
+
+var ctx;
+var size1 = 100;
+var size2 = 30;
+var angleChange1 = Math.PI/2000;
+var angleChange2;
+var startAngle1 = 0;
+var startAngle2 = 0;
+var difSlice = Math.PI/6;
+
+function init() {
+  var c = document.getElementById("canvas");
+  ctx = c.getContext("2d");
+  return setInterval(draw, 20);
+}
+
+function draw() {
+  ctx.clearRect(0,0,300,600);
+    var diffSpin = angleChange1 * size1 / size2;
+  
+  	angleChange2 = diffSpin;
+	
+    
+    drawCircle1();
+    drawCircle2();
+}
+
+function drawCircle1(){
+  
+  for(var i = 0; i < 12; i++){
+    ctx.beginPath();
+    startAngle1 = startAngle1 + angleChange1;
+    // center x, center x, size, start angle, end angle, turn circle
+    ctx.arc(150, 100, size1, startAngle1 + difSlice*i, Math.PI/6 + startAngle1  + difSlice*i, false);
+    ctx.lineTo(150, 100);
+
+    ctx.closePath();
+    if(i%2==0){
+    	ctx.fillStyle = "#FF0000";
+    }
+    else ctx.fillStyle = "#00FF00";
+    ctx.fill();
+    
+    }
+}
+function drawCircle2(){
+  
+  for(var i = 0; i < 12; i++){
+    ctx.beginPath();
+    startAngle2 = startAngle2 - angleChange2;
+    // center x, center x, size, start angle, end angle, turn circle
+    ctx.arc(150, 100 + size1 +size2, size2, startAngle2 - difSlice*i, Math.PI/6 + startAngle2  - difSlice*i, false);
+    ctx.lineTo(150, 100 + size1 +size2);
+
+    ctx.closePath();
+    if(i%2==0){
+    	ctx.fillStyle = "#FF0000";
+    }
+    else ctx.fillStyle = "#00FF00";
+    ctx.fill();
+    
+    }
+}
+
+init();
+</script>
+
+</body>
+</html> 

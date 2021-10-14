@@ -1,0 +1,1591 @@
+<html>
+
+<head>
+    <title>Example 01.03 - Materials and light</title>
+    <script type="text/javascript" src="../libs/three.js"></script>
+    <script type="text/javascript" src="../libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="../libs/TrackballControls.js"></script>
+    <script type="text/javascript" src="../libs/stats.js"></script>
+    <script type="text/javascript" src="../libs/dat.gui.js"></script>
+	<script type="text/javascript" charset="UTF-8" src="../libs/SceneUtils.js"></script>
+	<script type="text/javascript" src="../libs/KeyboardState.js"></script>
+    <style>
+        body{
+            /* set margin to 0 and overflow to hidden, to go fullscreen */
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<div id="Stats-output">
+</div>
+<!-- Div which will hold the Output -->
+<div id="WebGL-output">
+</div>
+
+<!-- Javascript code that runs our Three.js examples -->
+<script type="text/javascript">
+
+    // once everything is loaded, we run our Three.js stuff.
+    $(function () {
+		// isOccupied  type   side
+		//pawn   2
+		//bishop 3
+		//rook   4
+		//horse  5
+		//king   6
+		//queen  7
+		//boardStatus 0 = empty, 1 = occupied, 2 = movePossible, 3 = attackPossible, 4 = sameFig
+		// White side = 0  ||  black side = 1
+		var boardStatus = [
+							[[1, 4, 1], [1, 5, 1], [1, 3, 1], [1, 6, 1], [1, 7, 1], [1, 3, 1], [1, 5, 1], [1, 4, 1]],
+							[[1, 2, 1], [1, 2, 1], [1, 2, 1], [1, 2, 1], [1, 2, 1], [1, 2, 1], [1, 2, 1], [1, 2, 1]],
+							[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+							[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+							[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+							[[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+							[[1, 2, 0], [1, 2, 0], [1, 2, 0], [1, 2, 0], [1, 2, 0], [1, 2, 0], [1, 2, 0], [1, 2, 0]],
+							[[1, 4, 0], [1, 5, 0], [1, 3, 0], [1, 6, 0], [1, 7, 0], [1, 3, 0], [1, 5, 0], [1, 4, 0]],
+							] 
+		var currentSelect = [4, 4]
+		var selectState = 0
+		var turnTimer = 0
+		var isAnimationAct = false
+		
+		var boardColor1 = 0xEEEEEE
+		//var boardColor1 = 0xFF0000
+		var boardColor2 = 0x5F021F
+		var BSColor1 = 0xffa500
+		var BSColor2 = 0xa5ff00
+		var boardSelectColor = 0xffa500
+		var boardFigSelectColor = 0x50ff00 
+		var boardPathColor = 0xffff00
+		var color1 = 0xe3dac9
+		//var color1 = 0x0000FF
+		var color2 = 0x383838
+		
+		var selectedFig = [0, 0, 0, 0, 0, 0]
+		var moveDirections = 1
+		
+        // create a scene, that will hold all our elements such as objects, cameras and lights.
+        var scene = new THREE.Scene();
+        // create a camera, which defines where we're looking at.
+        var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        var camera2
+		var curCam = 1
+		// create a render and set the size
+        var renderer = new THREE.WebGLRenderer({antialias:true});
+		
+		var spGroup;
+        // the mesh
+        var latheMesh;
+
+		var segments = 12
+		var scale = 3
+		var consY = 7.5
+		
+		var pawnPointsY = [-0.113, 0.27310000000000006, 0.4928000000000001, 0.6597, 0.7744000000000001, 0.8375000000000001, 0.8496, 0.8113, 0.7232000000000001, 0.5859, 0.4, 0.5108, 0.6024000000000003, 0.6735999999999999, 0.7232000000000001, 0.75, 0.7528, 0.7304, 0.6816, 0.6052, 0.5, 0.4660000000000001, 0.4440000000000002, 0.434, 0.43600000000000005, 0.45000000000000007, 0.4760000000000001, 0.514, 0.5640000000000001, 0.626, 0.7, 0.8999999999999999, 0.8999999999999999, 0.9865000000000002, 1.0640000000000003, 1.1295, 1.1800000000000004, 1.2125000000000001, 1.2240000000000002, 1.2115, 1.1720000000000002, 1.1025, 0.9999999999999999, 1.038, 1.072, 1.1019999999999999, 1.128, 1.1500000000000001, 1.1680000000000001, 1.182, 1.1920000000000002, 1.198, 1.2, 1.2, -0.113]
+		var pawnPointsX = [0.5, 0.5480000000000002, 0.6800000000000003, 0.8780000000000001, 1.1240000000000006, 1.4000000000000006, 1.6880000000000006, 1.9700000000000006, 2.2280000000000015, 2.4440000000000017, 2.6000000000000014, 2.6439000000000017, 2.7112000000000025, 2.795300000000001, 2.889600000000002, 2.987500000000001, 3.082400000000001, 3.167700000000001, 3.2368000000000015, 3.2831000000000015, 3.300000000000001, 3.368000000000001, 3.4520000000000017, 3.5520000000000005, 3.6680000000000006, 3.8000000000000007, 3.948, 4.112, 4.292, 4.4879999999999995, 4.699999999999998, 4.6999999999999975, 5.1, 5.144100000000001, 5.2128000000000005, 5.300699999999998, 5.4024, 5.512499999999999, 5.6256, 5.7363, 5.839200000000001, 5.9289000000000005, 6, 6.002000000000002, 6.008000000000002, 6.018000000000001, 6.032000000000002, 6.050000000000002, 6.072000000000002, 6.0980000000000025, 6.128000000000003, 6.162000000000003, 6.200000000000003, 6.700000000000005, 6.700000000000008]
+		
+		var kingPointsY = [-0.113, 0.029800000000000045, 0.058400000000000084, 0.08460000000000008, 0.10720000000000011, 0.1250000000000001, 0.1368000000000001, 0.14140000000000008, 0.13760000000000008, 0.12420000000000003, 0.1, 0.15400000000000003, 0.19600000000000012, 0.22600000000000006, 0.24400000000000013, 0.2500000000000001, 0.2440000000000001, 0.2260000000000001, 0.19600000000000006, 0.15400000000000003, 0.09999999999999998, 0.20530000000000004, 0.28240000000000015, 0.33309999999999995, 0.35920000000000013, 0.3625000000000001, 0.34480000000000005, 0.30790000000000006, 0.25360000000000005, 0.18370000000000003, 0.1, 0.15500000000000005, 0.20000000000000007, 0.23500000000000004, 0.26000000000000006, 0.2750000000000001, 0.2800000000000001, 0.2750000000000001, 0.2600000000000001, 0.23500000000000004, 0.20000000000000004, 0.7999999999999999, 0.5, 0.5269, 0.5472000000000001, 0.5602999999999999, 0.5656, 0.5625000000000001, 0.5504, 0.5287000000000001, 0.49680000000000013, 0.45410000000000006, 0.4, 0.4866000000000001, 0.5648000000000002, 0.6321999999999999, 0.6864000000000001, 0.725, 0.7456, 0.7458, 0.7232000000000001, 0.6754, 0.6, 0.6782000000000001, 0.7336000000000003, 0.7673999999999999, 0.7808, 0.7750000000000001, 0.7512, 0.7106, 0.6544000000000001, 0.5838000000000001, 0.5, 0.44910000000000017, 0.41680000000000017, 0.40369999999999995, 0.4104000000000001, 0.43750000000000006, 0.48560000000000014, 0.5553, 0.6472000000000001, 0.7619, 0.8999999999999999, 0.8999999999999999, 0.9678000000000001, 1.0464000000000004, 1.1285999999999998, 1.2072000000000003, 1.2750000000000001, 1.3248000000000002, 1.3494000000000002, 1.3416000000000003, 1.2942000000000002, 1.2, 1.1700000000000002, 1.1880000000000006, 1.236, 1.2960000000000005, 1.3500000000000003, 1.3800000000000001, -0.13]	
+		var kingPointsX = [0.1, 0.1029, 0.11120000000000006, 0.12430000000000001, 0.1416000000000001, 0.1625000000000001, 0.1864000000000001, 0.2127000000000001, 0.24080000000000018, 0.2701000000000002, 0.30000000000000016, 0.2840000000000002, 0.29200000000000015, 0.3179999999999999, 0.3559999999999999, 0.3999999999999997, 0.4439999999999996, 0.48199999999999954, 0.5079999999999995, 0.5159999999999993, 0.49999999999999933, 0.4839999999999994, 0.4919999999999994, 0.517999999999999, 0.5559999999999992, 0.5999999999999989, 0.6439999999999987, 0.6819999999999986, 0.7079999999999985, 0.7159999999999984, 0.6999999999999984, 0.7399999999999983, 0.7799999999999984, 0.8199999999999981, 0.859999999999998, 0.8999999999999979, 0.9399999999999977, 0.9799999999999978, 1.0199999999999978, 1.0599999999999976, 1.0999999999999974, 1.4000000000000012, 2.0000000000000053, 2.0300000000000056, 2.0600000000000063, 2.0900000000000056, 2.1200000000000068, 2.150000000000007, 2.1800000000000077, 2.210000000000008, 2.240000000000009, 2.2700000000000093, 2.300000000000009, 2.28120000000001, 2.2816000000000103, 2.2964000000000095, 2.3208000000000104, 2.350000000000011, 2.3792000000000115, 2.4036000000000115, 2.4184000000000125, 2.418800000000013, 2.400000000000013, 2.4355000000000135, 2.4800000000000137, 2.5305000000000133, 2.5840000000000143, 2.6375000000000153, 2.6880000000000153, 2.732500000000016, 2.7680000000000167, 2.7915000000000165, 2.8000000000000167, 2.950600000000017, 3.152800000000018, 3.3922000000000163, 3.6544000000000176, 3.9250000000000176, 4.189600000000018, 4.4338000000000175, 4.643200000000019, 4.8034000000000185, 4.900000000000018, 5.200000000000021, 5.233000000000021, 5.272000000000022, 5.31700000000002, 5.368000000000022, 5.425000000000022, 5.488000000000022, 5.557000000000022, 5.632000000000023, 5.713000000000022, 5.800000000000022, 5.8032000000000235, 5.813600000000023, 5.832400000000021, 5.860800000000023, 5.9000000000000234, 5.951200000000023, 5.92 ]
+			
+		var queenPointsX = [-0.5, -0.5104000000000001, -0.48720000000000013, -0.4387999999999999, -0.3736, -0.29999999999999993, -0.22639999999999993, -0.1611999999999999, -0.11279999999999986, -0.08959999999999987, -0.09999999999999987, -0.07299999999999994, -0.03200000000000001, 0.022999999999999916, 0.09199999999999989, 0.17499999999999977, 0.27199999999999963, 0.3829999999999995, 0.5079999999999997, 0.6469999999999995, 0.7999999999999993, 0.8799999999999993, 0.9599999999999994, 1.039999999999999, 1.119999999999999, 1.1999999999999988, 1.279999999999999, 1.3599999999999988, 1.4399999999999988, 1.519999999999999, 1.5999999999999988, 1.605599999999999, 1.6207999999999991, 1.643199999999998, 1.6703999999999988, 1.6999999999999984, 1.729599999999998, 1.756799999999998, 1.7791999999999981, 1.794399999999998, 1.799999999999998, 1.8111999999999984, 1.841599999999999, 1.8863999999999987, 1.9407999999999994, 2, 2.0592000000000006, 2.113600000000001, 2.1584000000000017, 2.188800000000002, 2.200000000000002, 2.2056000000000027, 2.2208000000000028, 2.243200000000002, 2.2704000000000035, 2.300000000000004, 2.329600000000004, 2.3568000000000047, 2.3792000000000053, 2.3944000000000054, 2.4000000000000057, 2.8440000000000065, 3.2560000000000064, 3.636000000000006, 3.984000000000006, 4.300000000000006, 4.584000000000006, 4.836000000000006, 5.056000000000006, 5.244000000000006, 5.400000000000006, 5.414000000000006, 5.452000000000008, 5.5080000000000044, 5.576000000000006, 5.650000000000007, 5.724000000000007, 5.792000000000007, 5.848000000000008, 5.886000000000008, 5.9000000000000075, 5.958000000000007, 6.012000000000009, 6.062000000000007, 6.1080000000000085, 6.150000000000009, 6.188000000000009, 6.222000000000008, 6.2520000000000095, 6.278000000000009, 6.30000000000001, 6.338400000000011, 6.391200000000011, 6.4548000000000085, 6.5256000000000105, 6.60000000000001, 6.674400000000011, 6.745200000000011, 6.808800000000012, 6.861600000000012, 6.9, 7.4, 7.4]
+		var queenPointsY = [-0.113, 0.10800000000000005, 0.19200000000000012, 0.25200000000000006, 0.28800000000000014, 0.3000000000000001, 0.2880000000000001, 0.2520000000000001, 0.19200000000000003, 0.10800000000000003, 0, 0.17000000000000004, 0.32000000000000006, 0.45, 0.56, 0.65, 0.72, 0.77, 0.8, 0.81, 0.7999999999999999, 0.7250000000000001, 0.6600000000000001, 0.605, 0.56, 0.525, 0.5, 0.48500000000000004, 0.4800000000000001, 0.48500000000000004, 0.5, 0.581, 0.6440000000000001, 0.6889999999999998, 0.7160000000000002, 0.7250000000000001, 0.7160000000000001, 0.6890000000000001, 0.6440000000000001, 0.581, 0.5, 0.6620000000000001, 0.7880000000000003, 0.8779999999999998, 0.9320000000000002, 0.9500000000000001, 0.932, 0.8780000000000001, 0.788, 0.662, 0.5, 0.581, 0.6440000000000001, 0.6889999999999998, 0.7160000000000002, 0.7250000000000001, 0.7160000000000001, 0.6890000000000001, 0.6440000000000001, 0.581, 0.5, 0.503, 0.5120000000000001, 0.527, 0.548, 0.5750000000000001, 0.6080000000000001, 0.647, 0.692, 0.743, 0.7999999999999999, 0.9108000000000002, 1.0024000000000004, 1.0735999999999999, 1.1232000000000002, 1.1500000000000001, 1.1528, 1.1304, 1.0816000000000001, 1.0052, 0.8999999999999999, 0.925, 0.9600000000000002, 1.005, 1.06, 1.125, 1.2000000000000002, 1.2850000000000001, 1.3800000000000003, 1.4850000000000003, 1.6000000000000003, 1.6810000000000007, 1.7440000000000009, 1.7890000000000004, 1.8160000000000005, 1.8250000000000008, 1.8160000000000007, 1.7890000000000006, 1.7440000000000007, 1.6810000000000005, 1.6, 1.8, -0.13]
+
+		var bishopPointsX = [0.6, 0.6084, 0.6312000000000001, 0.6647999999999998, 0.7056000000000001, 0.75, 0.7944, 0.8351999999999999, 0.8688, 0.8916000000000001, 0.9, 0.905, 0.92, 0.9449999999999996, 0.9799999999999998, 1.0249999999999997, 1.0799999999999996, 1.1449999999999996, 1.2199999999999998, 1.3049999999999997, 1.3999999999999995, 1.5019999999999996, 1.6079999999999999, 1.7179999999999993, 1.8319999999999994, 1.9499999999999995, 2.0719999999999996, 2.1979999999999995, 2.328, 2.4619999999999997, 2.5999999999999996, 2.6112, 2.6416, 2.686399999999999, 2.7408, 2.7999999999999994, 2.859199999999999, 2.913599999999999, 2.9583999999999993, 2.9887999999999995, 2.999999999999999, 3.0625999999999998, 3.1288000000000005, 3.1961999999999997, 3.2624000000000004, 3.3250000000000015, 3.381600000000002, 3.429800000000002, 3.4672000000000027, 3.491400000000003, 3.500000000000003, 3.7690000000000032, 4.016000000000004, 4.241000000000002, 4.444000000000003, 4.625000000000003, 4.7840000000000025, 4.921000000000003, 5.036000000000003, 5.129000000000003, 5.200000000000003, 5.214000000000004, 5.252000000000004, 5.3080000000000025, 5.376000000000004, 5.450000000000004, 5.524000000000004, 5.592000000000004, 5.648000000000005, 5.686000000000005, 5.700000000000005, 5.9000000000000075, 6.500000000000009, 6.500000000000012]
+		var bishopPointsY = [-0.113, 0.08100000000000006, 0.14400000000000013, 0.18900000000000006, 0.21600000000000014, 0.22500000000000012, 0.2160000000000001, 0.18900000000000008, 0.14400000000000007, 0.08100000000000003, 0, 0.09600000000000003, 0.18400000000000005, 0.26400000000000007, 0.3360000000000001, 0.4, 0.45600000000000007, 0.504, 0.544, 0.576, 0.6, 0.615, 0.6200000000000001, 0.615, 0.6000000000000001, 0.575, 0.54, 0.495, 0.44000000000000006, 0.37500000000000006, 0.30000000000000004, 0.3568000000000001, 0.4064000000000002, 0.4476, 0.4792000000000001, 0.5000000000000001, 0.5088, 0.5044000000000001, 0.48560000000000014, 0.45120000000000005, 0.4, 0.4864000000000001, 0.5632000000000001, 0.6267999999999999, 0.6736000000000001, 0.7000000000000001, 0.7024, 0.6772, 0.6208, 0.5296, 0.4, 0.40400000000000014, 0.41600000000000015, 0.436, 0.4640000000000001, 0.5, 0.544, 0.596, 0.656, 0.724, 0.7999999999999999, 0.8810000000000002, 0.9440000000000003, 0.9889999999999998, 1.016, 1.0250000000000001, 1.016, 0.9890000000000001, 0.9440000000000001, 0.881, 0.7999999999999999, 0.9999999999999999, 0.9999999999999999, -0.13]
+
+		var keyboard = new KeyboardState();
+		
+		var axes = new THREE.AxesHelper(60);
+		//scene.add(axes);
+        
+		var pleinas=new THREE.PlaneGeometry(70,70,100,100);
+		var pleinomat = new THREE.MeshLambertMaterial({color:0xffffff});
+		var pln = new THREE.Mesh(pleinas,pleinomat);
+		pln.receiveShadow = true;
+		
+		pln.rotation.x=0.5*Math.PI;
+		pln.position.y=-4;
+		pln.rotation.y=Math.PI;
+		
+		scene.add(pln);
+
+		var framesOfMoves 
+			
+		var saveDesX
+		var saveDesY
+		
+		var sx
+		var sy
+		var dx
+		var dy
+		
+		var deltaX
+		var deltaY
+		var changeX
+		var changeY
+		
+		var curX
+		var curY
+		var saveX
+		var saveY
+
+		var gloType
+		var gloSide
+
+		var fov = 30
+		var cameraCube
+
+		//var axesHelper = new THREE.AxesHelper(5)
+		//scene.add(axesHelper)
+
+
+		var stats = initStats();
+		addBoard();
+		addCamera();
+		addSpotLight();
+		//generateFigures();
+		//generatePawn(0, consY, 0);
+		drawEverything();
+		selectBoard(0, 0);
+
+
+        // add the output of the renderer to the html element
+        $("#WebGL-output").append(renderer.domElement);
+		var controls = new THREE.TrackballControls( camera, renderer.domElement );     
+		
+		var guiControls = createGui();
+		var gui = new dat.GUI();
+		var numberList = ['cam1', 'cam2 POV', 'cam2 helper', 'cam3'];
+		gui.add( guiControls, 'cameraNum', numberList ).name('camera Number');
+		gui.add(guiControls, 'fov', 1, 180).step(1).onChange(controls.asGeom);
+		guiControls.update()
+
+		drawSomeS(100,100,100)
+
+		render();
+		
+		
+		function selectBoard(x, y){
+			var i = (currentSelect[0] - x)
+			var j = (currentSelect[1] - y) 
+			var name = "p" + i + j
+			removeObj(name)
+			
+			if(boardStatus[i][j][0] <= 1){
+				if((i + j) % 2 == 0) createSquare(i, j, boardColor1)				
+				else createSquare(i, j, boardColor2)
+			}
+			else createSquare(i, j, boardPathColor)
+			console.log(name)
+			
+			var name = "p" + currentSelect[0] + currentSelect[1]
+			removeObj(name)
+			createSquare(currentSelect[0], currentSelect[1], boardSelectColor)
+		}
+		function createGui(){
+			var guiControls  = new function () {
+
+			//this.amount = 2;
+			//this.bevelThickness = 2;
+			//this.bevelSize = 0.5;
+			//this.bevelEnabled = true;
+			//this.bevelSegments = 3;
+			//this.bevelEnabled = true;
+			//this.curveSegments = 12;
+			this.fov = 45;
+			this.oFov = 45
+			this.cameraNum = 1
+			this.curCam = 1
+			this.secondCamMin = 30
+			this.secondCamMax = 90
+			this.secondCamFov = 30
+			this.i = 30
+			this.j = 90
+			this.delay
+			this.width
+			var cameraHelper
+			var isAboveFig = false
+
+			this.update = function () {
+				// remove the old plane
+				//scene.remove(shape);
+				// create a new one
+				//console.log(this.curCam)
+				if(this.oFov != this.fov){
+					this.oFov = this.fov
+					
+					if(this.curCam == 'cam1'){
+						curCam = 1
+						setFirstCam(this.fov);
+					}
+				}
+				if(this.curCam != this.cameraNum){
+					this.curCam = this.cameraNum
+					
+					
+
+					if(this.curCam == 'cam1'){
+						curCam = 1
+						setFirstCam(this.fov)
+						removeObj('camH')
+					}
+					if(this.curCam == 'cam2 POV'){
+						//console.log('TODO')
+						curCam = 2
+						setSecondCam();
+						removeObj('camH')
+					}
+					if(this.curCam == 'cam2 helper'){
+						//console.log('TODO')
+						curCam = 1
+						setSecondCam();
+					}
+					if(this.curCam == 'cam3'){
+						curCam = 1
+						setThirdCam()
+						
+					}
+
+					console.log('Camera Change')
+				}
+				if(this.curCam == 'cam2 helper' || this.curCam == 'cam2 POV'){
+					updateSecondView()
+				}
+				if(this.curCam == 'cam3'){
+					updateThirdView()
+				}
+				function setFirstCam(fov){
+					
+					moveDirections = 1
+					tempx = camera.position.x
+					tempy = camera.position.y
+					tempz = camera.position.z
+					
+					camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
+					camera.position.x = tempx
+					camera.position.y = tempy
+					camera.position.z = tempz
+					
+					camera.lookAt(scene.position);
+					//addCamera()
+					//console.log(temp, camera)
+					controls = new THREE.TrackballControls( camera, renderer.domElement );
+				}
+				function setSecondCam(){
+					moveDirections = 1
+					this.secondCamMin = 22
+					this.secondCamMax = 100
+					this.i = this.secondCamMin
+					this.j = this.secondCamMin
+					tempx = this.secondCamMin
+					tempy = 6.5
+					tempz = 0
+					this.delay = 0
+					this.width = 10
+					
+					this.secondCamFov = 20
+
+					//console.log(this.i, this.j, this.secondCamMax, this.secondCamMin, tempx)
+
+					camera2 = new THREE.PerspectiveCamera(this.secondCamFov, window.innerWidth / window.innerHeight, 0.1, 1000);
+					camera2.position.x = tempx
+					camera2.position.y = tempy
+					camera2.position.z = tempz
+					cameraHelper = new THREE.CameraHelper(camera2)
+					cameraHelper.name = 'camH'
+					scene.add(cameraHelper)
+					
+					var vec = new THREE.Vector3(16, consY, 0)
+					camera2.lookAt(new THREE.Vector3(16, consY, 0))
+				}
+				function updateSecondView(){
+					if(this.delay != 1){
+						this.delay++
+					}
+					else{
+						this.delay = 0
+						if(this.i < this.secondCamMax){
+							this.i++
+							camera2.position.x = this.i
+							var temp
+							temp = 2 * Math.atan((this.width)/(2 * (this.i  - 16))) * (180 / Math.PI)
+							camera2.fov = temp
+							camera2.lookAt(new THREE.Vector3(16, consY - 1, 0))
+							camera2.updateProjectionMatrix();
+							cameraHelper.update()
+							//console.log(temp)
+							updateS(camera2.position.x, camera2.position.y, camera2.position.z)
+
+							if(this.i == this.secondCamMax){
+								this.i++
+								this.j = this.secondCamMax
+							}
+							
+						}
+						if(this.j > this.secondCamMin){
+							this.j--
+							camera2.position.x = this.j
+							var temp
+							temp = 2 * Math.atan((this.width)/(2 * (this.j - 16))) * (180 / Math.PI)
+							camera2.fov = temp
+							camera2.lookAt(new THREE.Vector3(16, consY - 1, 0))
+							camera2.updateProjectionMatrix();
+							cameraHelper.update()
+							//console.log(temp)
+							updateS(camera2.position.x, camera2.position.y, camera2.position.z)
+							if(this.j == this.secondCamMin){
+								this.i = this.secondCamMin
+								this.j--
+							}
+						//console.log(camera)
+						}
+						//console.log(this.i, this.j)
+					}
+
+				}
+				function setThirdCam(){
+					moveDirections = 1
+					camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.1, 1000);
+					camera.position.x = 0.0001
+					camera.position.y = 80
+					camera.position.z = 0
+					isAboveFig = false
+					console.log(scene.position)
+					camera.lookAt(scene.position)
+
+					cameraHelper = new THREE.CameraHelper(camera)
+					cameraHelper.name = 'camH'
+					scene.add(cameraHelper)
+
+					updateThirdView()
+				}
+				function updateThirdView(){
+					if(isAnimationAct == true){
+						if(!isAboveFig){
+							isAboveFig = true
+							camera.position.x = (curX + deltaX) / 2
+							camera.position.z = (curY + deltaY) / 2
+							console.log(saveDesY, curY)
+							console.log((saveDesY - curY) /2 )
+						}
+						var vec = new THREE.Vector3(curX, consY, curY)
+						camera.lookAt(vec)
+						
+						if(camera.rotation.z < 0){
+
+							camera.rotation.z = camera.rotation.z * -1
+							console.log(camera.rotation.z)
+						}
+						camera.rotation.z = 1.57079
+						//console.log(camera.position)
+						//console.log(camera.rotation.y)
+						//console.log(camera.rotation.z)
+						//camera.lookAt(vec)
+						//console.log(vec)
+						cameraHelper.update()
+					}
+					else {
+						//camera.position.x = 0
+						//camera.position.z = 0
+						//camera.lookAt(scene.position);
+						isAboveFig = false
+					}
+				}
+
+				var options = {
+					//amount: controls.amount,
+					//bevelThickness: controls.bevelThickness,
+					//bevelSize: controls.bevelSize,
+					//bevelSegments: controls.bevelSegments,
+					//bevelEnabled: controls.bevelEnabled,
+					//curveSegments: controls.curveSegments,
+					fov: controls.fov
+				};
+
+			};
+
+			}
+			return guiControls
+		}
+		function drawEverything(){
+			for(var i = 0; i < 8; i++){
+				for(var j = 0; j < 8; j++){
+					if(boardStatus[i][j][0] != 0){
+						drawEv(boardStatus[i][j][1], boardStatus[i][j][2], i, j)
+					
+					}
+				}
+			}
+			function drawEv(type, side, dx, dy){
+				if(type == 2){
+					var dx = getPosX(dx)
+					var dy = getPosX(dy)
+					drawOnSpotFig(type, side, dx, dy)
+					//AnimateFig(type, side, sx, sy, dx, dx)
+				}
+				if(type == 3){
+					var dx = getPosX(dx)
+					var dy = getPosX(dy)
+					drawOnSpotFig(type, side, dx, dy)
+				}
+				if(type == 4){
+					var dx = getPosX(dx)
+					var dy = getPosX(dy)
+					drawOnSpotFig(type, side, dx, dy)
+				}
+				if(type == 5){
+					var dx = getPosX(dx)
+					var dy = getPosX(dy)
+					drawOnSpotFig(type, side, dx, dy)
+				}
+				if(type == 6){
+					var dx = getPosX(dx)
+					var dy = getPosX(dy)
+					drawOnSpotFig(type, side, dx, dy)
+				}
+				if(type == 7){
+					var dx = getPosX(dx)
+					var dy = getPosX(dy)
+					drawOnSpotFig(type, side, dx, dy)
+				}
+			} 	
+		}
+		function drawFig(type, side, sx, sy, dx, dy){
+			//console.log("typeSideXZ")
+			//console.log(type, side, x, z)
+			//console.log(sx, sy)
+			console.log(scene)
+			if(type == 2){
+				//var dx = getPosX(dx)
+				//var dy = getPosX(dy)
+				//drawOnSpotFig(type, side, dx, dy)
+				AnimateFig(type, side, sx, sy, dx, dy)
+			}
+			if(type == 3){
+				//var dx = getPosX(dx)
+				//var dy = getPosX(dy)
+				//drawOnSpotFig(type, side, dx, dy)
+				AnimateFig(type, side, sx, sy, dx, dy)
+			}
+			if(type == 4){
+				//var dx = getPosX(dx)
+				//var dy = getPosX(dy)
+				//drawOnSpotFig(type, side, dx, dy)
+				AnimateFig(type, side, sx, sy, dx, dy)
+			}
+			//Horse
+			if(type == 5){
+				//var dx = getPosX(dx)
+				//var dy = getPosX(dy)
+				//drawOnSpotFig(type, side, dx, dy)
+				AnimateFig(type, side, sx, sy, dx, dy)
+			}
+			if(type == 6){
+				//var dx = getPosX(dx)
+				//var dy = getPosX(dy)
+				//drawOnSpotFig(type, side, dx, dy)
+				AnimateFig(type, side, sx, sy, dx, dy)
+			}
+			if(type == 7){
+				//var dx = getPosX(dx)
+				//var dy = getPosX(dy)
+				//drawOnSpotFig(type, side, dx, dy)
+				AnimateFig(type, side, sx, sy, dx, dy)
+			}
+		}
+		function drawOnSpotFig(type, side, x, z){
+			//console.log("typeSideXZ")
+			//console.log(type, side, x, z)
+			//console.log(x, z)
+			var fig
+			
+			if(type == 2){
+				fig = drawPawn(x, z, side)
+			}
+			if(type == 3){
+				fig = drawBishop(x, z, side)
+			}
+			if(type == 4){
+				if(side == 0)
+					fig = drawRook(x, consY, z, color1, 3)
+				else fig = drawRook(x, consY, z, color2, 3)
+			}
+			if(type == 5){
+				if(side == 0)
+					fig = drawHorse(x, consY - 0.4, z, color1, 3.3, true)
+				else fig = drawHorse(x, consY - 0.4, z, color2, 3.3, false)
+			}
+			if(type == 6){
+				fig = drawKing(x, z, side)
+			}
+			if(type == 7){
+				fig = drawQueen(x, z, side)
+			}
+			
+			fig.name = "f" + x + z
+			//console.log(fig.name)
+			scene.add(fig)
+		}
+		function AnimateFig(type, side, sx, sy, dx, dy){
+			//console.log(sx, sy, dx, dy)
+			
+			isAnimationAct = true
+
+			var temp = Math.sqrt(Math.pow(sx - dx, 2) + Math.pow(sy - dy, 2))
+			//console.log(temp)
+			framesOfMoves = parseInt(30 * temp)
+			console.log(framesOfMoves)
+
+			saveDesX = getPosX(dx)
+			saveDesY = getPosX(dy)
+
+			sx = getPosX(sx)
+			sy = getPosX(sy)
+			dx = getPosX(dx)
+			dy = getPosX(dy)
+
+			deltaX = dx - sx
+			deltaY = dy - sy
+			changeX = deltaX / framesOfMoves
+			changeY = deltaY / framesOfMoves
+			
+			console.log(deltaX, deltaY)
+
+			curX = sx
+			curY = sy
+			gloType = type 
+			gloSide = side
+
+			drawOnSpotFig(type, side, sx, sy)
+		}
+		function animateStuff(){
+			if(!isAnimationAct) return
+
+			aniStraightLine()
+			
+			if(gloType == 5){
+				saveX = curX
+				saveY = curY
+				curX = curX + changeX
+				curY = curY + changeY
+				//drawOnSpotFig(gloType, gloSide, curX, curY)
+
+				//arc = (Math.pow(framesOfMoves - 22, 2) * -1 + 484) / 55
+				arc = (Math.pow(framesOfMoves - 34, 2) * -1 + 1156) / 100
+				
+				//console.log(arc, ' ', consY - 0.4 + arc, ' ', consY - 0.4)
+				var fig
+				if(gloSide == 0)
+					fig = drawHorse(curX, consY - 0.4 + arc, curY, color1, 3.3, true)
+				else fig = drawHorse(curX, consY - 0.4 + arc, curY, color2, 3.3, false)
+
+				fig.name = "f" + curX + curY
+				//console.log(fig.name)
+				scene.add(fig)
+				removeObj('f' + saveX + saveY)
+				framesOfMoves -= 1
+			}
+			else aniStraightLine()
+
+			//console.log(framesOfMoves)
+
+			if(framesOfMoves <= 0){
+				isAnimationAct = false;
+				
+				removeObj('f' + curX + curY)
+				drawOnSpotFig(gloType, gloSide, saveDesX, saveDesY)
+			}
+
+			function aniStraightLine(){
+				saveX = curX
+				saveY = curY
+				curX = curX + changeX
+				curY = curY + changeY
+				drawOnSpotFig(gloType, gloSide, curX, curY)
+				removeObj('f' + saveX + saveY)
+				framesOfMoves -= 1
+			}
+		}
+		function drawSomeS(x, y, z){
+			var geometry = new THREE.BoxGeometry( 2, 1, 0.5 );
+			var material = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+			cameraCube = new THREE.Mesh( geometry, material );
+			cameraCube.position.x = x
+			cameraCube.position.y = y
+			cameraCube.position.z = z
+			scene.add( cameraCube );
+
+		}
+		function updateS(x, y, z){
+			cameraCube.position.x = x
+			cameraCube.position.y = y
+			cameraCube.position.z = z
+		}
+		function drawKing(x, z, side){
+			if(side == 0)
+				return generateFig(kingPointsX, kingPointsY, x, consY + 1.2, z, color1, 2.6)
+			else return generateFig(kingPointsX, kingPointsY, x, consY + 1.2, z, color2, 2.6)
+		}
+		function drawQueen(x, z, side){
+			//console.log(x, z, side)
+			if(side == 0)
+				return generateFig(queenPointsX, queenPointsY, x, consY - 0.55, z, color1, 3.5)
+			else return generateFig(queenPointsX, queenPointsY, x, consY - 0.55, z, color2, 3.5)
+		}
+		function drawBishop(x, z, side){
+			if(side == 0)
+				return generateFig(bishopPointsX, bishopPointsY, x, consY + 0.1, z, color1, 3)
+			else return generateFig(bishopPointsX, bishopPointsY, x, consY + 0.1, z, color2, 3)
+		}
+		function drawPawn(x, z, side){
+			if(side == 0)
+				return generateFig(pawnPointsX, pawnPointsY, x, consY - 1.3, z, color1, 4.1)
+			else return generateFig(pawnPointsX, pawnPointsY, x, consY - 1.3, z, color2, 4.1)
+		}	
+		function generateFigures(){
+			var startX = -12
+			var startY = -13
+
+			
+			for(var i = 0; i < 8; i++){
+				generateFig(pawnPointsX, pawnPointsY, 1 + startX - 1 + 4, consY - 1.3, 4 * i + startY + 1, color1, 4.1);
+			
+			}
+			generateFig(kingPointsX, kingPointsY, -12, consY + 1.2, 4, color1, 2.6)
+			generateFig(queenPointsX, queenPointsY, -12, consY - 0.55, 0, color1, 3.5)
+			generateFig(bishopPointsX, bishopPointsY, -12, consY + 0.1 , 8, color1, 3)
+			generateFig(bishopPointsX, bishopPointsY, -12, consY + 0.1, -4, color1, 3)
+			drawHorse(-12, consY - 0.4, 12, color1, 3.3, true)
+			drawHorse(-12, consY - 0.4, -8, color1, 3.3, true)
+			drawRook(-12, consY - 0, -12, color1, 3)
+			drawRook(-12, consY - 0, 16, color1, 3)
+			
+			//other side ^^^^^^^^^^^^^^^
+			
+			for(var i = 0; i < 8; i++){
+				generateFig(pawnPointsX, pawnPointsY, 1 + startX - 1 + 24, consY - 1.3, 4 * i + startY + 1, color2, 4.1);
+			
+			}
+			generateFig(kingPointsX, kingPointsY, 16, consY + 1.2, 4, color2, 2.6)
+			generateFig(queenPointsX, queenPointsY, 16, consY - 0.55, 0, color2, 3.5)
+			generateFig(bishopPointsX, bishopPointsY, 16, consY + 0.1 , 8, color2, 3)
+			generateFig(bishopPointsX, bishopPointsY, 16, consY + 0.1, -4, color2, 3)
+			drawHorse(16, consY - 0.4, 12, color2, 3.3, false)
+			drawHorse(16, consY - 0.4, -8, color2, 3.3, false)
+			drawRook(16, consY - 0, -12, color2, 3)
+			drawRook(16, consY - 0, 16, color2, 3)
+		}	
+		function generateFig(NpointsX, NpointsY, posX, posY, posZ, color, scale) {
+			
+			//var pointsY = [-0.113, 0.27310000000000006, 0.4928000000000001, 0.6597, 0.7744000000000001, 0.8375000000000001, 0.8496, 0.8113, 0.7232000000000001, 0.5859, 0.4, 0.5108, 0.6024000000000003, 0.6735999999999999, 0.7232000000000001, 0.75, 0.7528, 0.7304, 0.6816, 0.6052, 0.5, 0.4660000000000001, 0.4440000000000002, 0.434, 0.43600000000000005, 0.45000000000000007, 0.4760000000000001, 0.514, 0.5640000000000001, 0.626, 0.7, 0.8999999999999999, 0.8999999999999999, 0.9865000000000002, 1.0640000000000003, 1.1295, 1.1800000000000004, 1.2125000000000001, 1.2240000000000002, 1.2115, 1.1720000000000002, 1.1025, 0.9999999999999999, 1.038, 1.072, 1.1019999999999999, 1.128, 1.1500000000000001, 1.1680000000000001, 1.182, 1.1920000000000002, 1.198, 1.2, 1.2, -0.113]
+			//var pointsX = [0.5, 0.5480000000000002, 0.6800000000000003, 0.8780000000000001, 1.1240000000000006, 1.4000000000000006, 1.6880000000000006, 1.9700000000000006, 2.2280000000000015, 2.4440000000000017, 2.6000000000000014, 2.6439000000000017, 2.7112000000000025, 2.795300000000001, 2.889600000000002, 2.987500000000001, 3.082400000000001, 3.167700000000001, 3.2368000000000015, 3.2831000000000015, 3.300000000000001, 3.368000000000001, 3.4520000000000017, 3.5520000000000005, 3.6680000000000006, 3.8000000000000007, 3.948, 4.112, 4.292, 4.4879999999999995, 4.699999999999998, 4.6999999999999975, 5.1, 5.144100000000001, 5.2128000000000005, 5.300699999999998, 5.4024, 5.512499999999999, 5.6256, 5.7363, 5.839200000000001, 5.9289000000000005, 6, 6.002000000000002, 6.008000000000002, 6.018000000000001, 6.032000000000002, 6.050000000000002, 6.072000000000002, 6.0980000000000025, 6.128000000000003, 6.162000000000003, 6.200000000000003, 6.700000000000005, 6.700000000000008]
+			//console.log(pointsX)
+			var pointsX = NpointsX.slice();
+			var pointsY = NpointsY.slice();
+			
+			
+			for(var i = 0; i < pointsX.length;i++){
+				pointsY[i]=254 + pointsY[i]*35;//35
+				pointsX[i]=pointsX[i]*30;//30
+			}
+	    // add 10 random spheres
+            var points = [];
+            var height = 5;
+            var count = pointsY.length;
+            for (var i = 0; i < count; i++) {
+                points.push(new THREE.Vector2((25 - pointsY[i]/10) / scale, ((pointsX[pointsX.length-1]-pointsX[i] - 174)/10) / scale));
+            }
+
+            spGroup = new THREE.Object3D();
+            var material = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: false});
+            points.forEach(function (point) {
+
+                var spGeom = new THREE.SphereGeometry(0.2);
+                var spMesh = new THREE.Mesh(spGeom, material);
+                spMesh.position = point;
+                spGroup.add(spMesh);
+            });
+            // add the points as a group to the scene
+            //scene.add(spGroup);
+
+            // use the same points to create a latheGeometry
+            //var latheGeometry = new THREE.LatheGeometry(points, Math.ceil(segments), phiStart, phiLength);
+            var latheGeometry = new THREE.LatheGeometry(points, Math.ceil(segments), 0, 2 * Math.PI);
+            latheMesh = createMesh(latheGeometry, color);
+			
+			latheMesh.position.x = posX;
+			latheMesh.position.y = posY
+			latheMesh.position.z = posZ;
+			
+			//console.log(posX, posY, posZ)
+			return latheMesh
+            //scene.add(latheMesh);
+        }
+        function createMesh(geom, color) {
+
+            // assign two materials
+            var meshMaterial = new THREE.MeshLambertMaterial({color: color});
+            var meshMaterial = new THREE.MeshLambertMaterial({color: color});;
+            //meshMaterial.side = THREE.DoubleSide;
+			meshMaterial.side = THREE.BackSide;
+            var wireFrameMat = new THREE.MeshBasicMaterial();
+            wireFrameMat.wireframe = false;
+			
+			var mesh = new THREE.Mesh(geom, meshMaterial)
+			mesh.castShadow = true;
+			mesh.receiveShadow = true;
+            return mesh;
+        }
+		function drawHorse(posX, posY, posZ, color, scale, dir) {
+			//var pointsY = [-0.113, 0.27310000000000006, 0.4928000000000001, 0.6597, 0.7744000000000001, 0.8375000000000001, 0.8496, 0.8113, 0.7232000000000001, 0.5859, 0.4, 0.5108, 0.6024000000000003, 0.6735999999999999, 0.7232000000000001, 0.75, 0.7528, 0.7304, 0.6816, 0.6052, 0.5, 0.4660000000000001, 0.4440000000000002, 0.434, 0.43600000000000005, 0.45000000000000007, 0.4760000000000001, 0.514, 0.5640000000000001, 0.626, 0.7, 0.8999999999999999, 0.8999999999999999, 0.9865000000000002, 1.0640000000000003, 1.1295, 1.1800000000000004, 1.2125000000000001, 1.2240000000000002, 1.2115, 1.1720000000000002, 1.1025, 0.9999999999999999, 1.038, 1.072, 1.1019999999999999, 1.128, 1.1500000000000001, 1.1680000000000001, 1.182, 1.1920000000000002, 1.198, 1.2, 1.2, -0.113]
+			var headMesh = drawHorseHead(posX, posY, posZ, color, scale);
+			var pointsX = [0, 1.3877787807814457e-16, 0.04130000000000013, 0.10240000000000007, 0.17909999999999993, 0.2671999999999999, 0.36249999999999977, 0.46079999999999954, 0.5578999999999994, 0.6495999999999995, 0.7316999999999994, 0.7999999999999993, 0.8085999999999993, 0.8327999999999994, 0.8701999999999989, 0.918399999999999, 0.9749999999999988, 1.0375999999999987, 1.1037999999999986, 1.1711999999999987, 1.2373999999999985, 1.2999999999999985, 1.3383999999999987, 1.3911999999999987, 1.454799999999998, 1.5255999999999985, 1.5999999999999983, 1.6743999999999983, 1.7451999999999979, 1.8087999999999984, 1.8615999999999984, 1.8999999999999981, 1.9000000000000017]
+			//var pointsX = [0.5, 0.5480000000000002, 0.6800000000000003, 0.8780000000000001, 1.1240000000000006, 1.4000000000000006, 1.6880000000000006, 1.9700000000000006, 2.2280000000000015, 2.4440000000000017, 2.6000000000000014, 2.6439000000000017, 2.7112000000000025, 2.795300000000001, 2.889600000000002, 2.987500000000001, 3.082400000000001, 3.167700000000001, 3.2368000000000015, 3.2831000000000015, 3.300000000000001, 3.368000000000001, 3.4520000000000017, 3.5520000000000005, 3.6680000000000006, 3.8000000000000007, 3.948, 4.112, 4.292, 4.4879999999999995, 4.699999999999998, 4.6999999999999975, 5.1, 5.144100000000001, 5.2128000000000005, 5.300699999999998, 5.4024, 5.512499999999999, 5.6256, 5.7363, 5.839200000000001, 5.9289000000000005, 6, 6.002000000000002, 6.008000000000002, 6.018000000000001, 6.032000000000002, 6.050000000000002, 6.072000000000002, 6.0980000000000025, 6.128000000000003, 6.162000000000003, 6.200000000000003, 6.700000000000005, 6.700000000000008]
+			var pointsY = [0, 0.7999999999999999, 0.8811000000000002, 0.9448000000000003, 0.9916999999999998, 1.0224000000000002, 1.0375, 1.0376, 1.0233, 0.9952000000000001, 0.9539, 0.8999999999999999, 0.8975000000000001, 0.8920000000000002, 0.8864999999999997, 0.884, 0.8875, 0.8999999999999999, 0.9244999999999999, 0.964, 1.0215, 1.0999999999999999, 1.1810000000000003, 1.2440000000000004, 1.2890000000000001, 1.3160000000000003, 1.3250000000000002, 1.3160000000000003, 1.2890000000000001, 1.2440000000000002, 1.181, 1.0999999999999999, 0]
+			
+			for(var i = 0; i < pointsX.length;i++){
+				pointsY[i]=254 + pointsY[i]*35;//35
+				pointsX[i]=pointsX[i]*30;//30
+			}
+	    // add 10 random spheres
+            var points = [];
+            var height = 5;
+            var count = pointsY.length;
+            for (var i = 0; i < count; i++) {
+                points.push(new THREE.Vector2((25 - pointsY[i]/10) / scale, ((pointsX[pointsX.length-1]-pointsX[i] - 174)/10) / scale));
+            }
+
+            spGroup = new THREE.Object3D();
+            var material = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: false});
+            points.forEach(function (point) {
+
+                var spGeom = new THREE.SphereGeometry(0.2);
+                var spMesh = new THREE.Mesh(spGeom, material);
+                spMesh.position = point;
+                spGroup.add(spMesh);
+            });
+            // add the points as a group to the scene
+            //scene.add(spGroup);
+
+            // use the same points to create a latheGeometry
+            //var latheGeometry = new THREE.LatheGeometry(points, Math.ceil(segments), phiStart, phiLength);
+            var latheGeometry = new THREE.LatheGeometry(points, Math.ceil(segments), 0, 2 * Math.PI);
+            latheMesh = createHorsePedestal(latheGeometry, color);
+			var group = new THREE.Group();
+			group.add(latheMesh)
+			group.add(headMesh)
+			
+			group.position.x = posX;
+			group.position.y = posY
+			group.position.z = posZ;
+			
+			if(dir == true)
+				return group
+			else{
+				group.rotateY(Math.PI)
+				return group
+			}
+			
+			function createHorsePedestal(geom, color) {
+
+				// assign two materials
+				var meshMaterial = new THREE.MeshLambertMaterial({color: color});
+				var meshMaterial = new THREE.MeshLambertMaterial({color: color});
+				//meshMaterial.side = THREE.DoubleSide;
+				meshMaterial.side = THREE.BackSide;
+				var mesh = new THREE.Mesh(geom, meshMaterial)
+				mesh.castShadow = true;
+				return mesh;
+			}
+			function drawHorseHead(posX, posY, posZ, color, scale){
+				var extrudeSettings = {
+					steps: 3,
+					depth: 20,
+					bevelEnabled: true,
+					bevelThickness: 0,
+					bevelSize: 5,
+					bevelOffset: 0,
+					bevelSegments: 1
+				};
+
+				var geometry = new THREE.ExtrudeGeometry( drawExShape(), extrudeSettings );
+				var material = new THREE.MeshLambertMaterial({color: color})
+				//var mesh = new THREE.Mesh( geometry, material ) ;
+				//var mesh = THREE.SceneUtils.createMultiMaterialObject(geometry, [material]);
+				var mesh = new THREE.Mesh(geometry, material)
+				mesh.castShadow = true;
+				
+				mesh.scale.set(0.25 / scale, 0.25 / scale, 0.25 / scale)
+				mesh.position.x = -2 / scale
+				mesh.position.y = -10.8 /scale
+				mesh.position.z = -2.5 / scale
+				//scene.add( mesh ); 
+				return mesh
+				
+
+				function drawExShape(){
+					var shape = new THREE.Shape();
+					shape.moveTo( 0,0 );
+					shape.bezierCurveTo(-8, 13, -10, 30, 5, 40);
+					shape.lineTo(2.5, 35)
+					shape.lineTo(11.5, 34.5)
+					shape.bezierCurveTo(13, 28, 19, 21.5, 20.5, 22);
+					shape.lineTo(20.5, 21.9)
+					shape.lineTo(5, 21.9)
+					shape.lineTo(15, 0)
+					
+					return shape
+				}
+			}
+		}
+		function drawRook(posX, posY, posZ, color, scale) {
+			//var pointsY = [-0.113, 0.27310000000000006, 0.4928000000000001, 0.6597, 0.7744000000000001, 0.8375000000000001, 0.8496, 0.8113, 0.7232000000000001, 0.5859, 0.4, 0.5108, 0.6024000000000003, 0.6735999999999999, 0.7232000000000001, 0.75, 0.7528, 0.7304, 0.6816, 0.6052, 0.5, 0.4660000000000001, 0.4440000000000002, 0.434, 0.43600000000000005, 0.45000000000000007, 0.4760000000000001, 0.514, 0.5640000000000001, 0.626, 0.7, 0.8999999999999999, 0.8999999999999999, 0.9865000000000002, 1.0640000000000003, 1.1295, 1.1800000000000004, 1.2125000000000001, 1.2240000000000002, 1.2115, 1.1720000000000002, 1.1025, 0.9999999999999999, 1.038, 1.072, 1.1019999999999999, 1.128, 1.1500000000000001, 1.1680000000000001, 1.182, 1.1920000000000002, 1.198, 1.2, 1.2, -0.113]
+			//var headMesh = drawHorseHead(posX, posY, posZ, color, scale);
+			var headMesh = drawCrown(posX, posY, posZ, color, scale);
+			
+			var pointsX = [0.9999999999999999, 1, 1.3999999999999995, 1.6999999999999988, 1.8999999999999981, 1.9000000000000017, 2.176000000000003, 2.444000000000003, 2.7040000000000033, 2.956000000000004, 3.200000000000004, 3.4360000000000044, 3.664000000000005, 3.8840000000000057, 4.096000000000005, 4.300000000000006, 4.305600000000007, 4.320800000000008, 4.343200000000006, 4.370400000000007, 4.4000000000000075, 4.429600000000008, 4.456800000000008, 4.479200000000009, 4.4944000000000095, 4.500000000000009, 4.50840000000001, 4.53120000000001, 4.564800000000008, 4.60560000000001, 4.65000000000001, 4.694400000000011, 4.7352000000000105, 4.768800000000011, 4.791600000000011, 4.800000000000011, 4.838700000000012, 4.8936000000000135, 4.96290000000001, 5.044800000000012, 5.137500000000012, 5.239200000000013, 5.348100000000012, 5.462400000000013, 5.580300000000013, 5.700000000000012, 5.700000000000015]
+			//var pointsX = [0.5, 0.5480000000000002, 0.6800000000000003, 0.8780000000000001, 1.1240000000000006, 1.4000000000000006, 1.6880000000000006, 1.9700000000000006, 2.2280000000000015, 2.4440000000000017, 2.6000000000000014, 2.6439000000000017, 2.7112000000000025, 2.795300000000001, 2.889600000000002, 2.987500000000001, 3.082400000000001, 3.167700000000001, 3.2368000000000015, 3.2831000000000015, 3.300000000000001, 3.368000000000001, 3.4520000000000017, 3.5520000000000005, 3.6680000000000006, 3.8000000000000007, 3.948, 4.112, 4.292, 4.4879999999999995, 4.699999999999998, 4.6999999999999975, 5.1, 5.144100000000001, 5.2128000000000005, 5.300699999999998, 5.4024, 5.512499999999999, 5.6256, 5.7363, 5.839200000000001, 5.9289000000000005, 6, 6.002000000000002, 6.008000000000002, 6.018000000000001, 6.032000000000002, 6.050000000000002, 6.072000000000002, 6.0980000000000025, 6.128000000000003, 6.162000000000003, 6.200000000000003, 6.700000000000005, 6.700000000000008]
+			var pointsY = [-0.113, 0.7999999999999999, 0.7999999999999999, 0.5, 0.5, 0.4, 0.40400000000000014, 0.41600000000000015, 0.436, 0.4640000000000001, 0.5, 0.544, 0.596, 0.656, 0.724, 0.7999999999999999, 0.8270000000000001, 0.8480000000000002, 0.8629999999999997, 0.872, 0.875, 0.872, 0.863, 0.8480000000000001, 0.827, 0.7999999999999999, 0.8568000000000001, 0.9064000000000002, 0.9475999999999998, 0.9792000000000001, 1, 1.0088, 1.0044, 0.9856, 0.9512, 0.8999999999999999, 0.9841000000000001, 1.0568000000000002, 1.1186999999999998, 1.1704, 1.2125000000000001, 1.2456, 1.2703000000000002, 1.2872000000000003, 1.2969000000000002, 1.3, -0.113]
+			
+			for(var i = 0; i < pointsX.length;i++){
+				pointsY[i]=254 + pointsY[i]*35;//35
+				pointsX[i]=pointsX[i]*30;//30
+			}
+		// add 10 random spheres
+			var points = [];
+			var height = 5;
+			var count = pointsY.length;
+			for (var i = 0; i < count; i++) {
+				points.push(new THREE.Vector2((25 - pointsY[i]/10) / scale, ((pointsX[pointsX.length-1]-pointsX[i] - 174)/10) / scale));
+			}
+
+			spGroup = new THREE.Object3D();
+			var material = new THREE.MeshBasicMaterial({color: 0xff0000, transparent: false});
+			points.forEach(function (point) {
+
+				var spGeom = new THREE.SphereGeometry(0.2);
+				var spMesh = new THREE.Mesh(spGeom, material);
+				spMesh.position = point;
+				spGroup.add(spMesh);
+			});
+			// add the points as a group to the scene
+			//scene.add(spGroup);
+
+			// use the same points to create a latheGeometry
+			//var latheGeometry = new THREE.LatheGeometry(points, Math.ceil(segments), phiStart, phiLength);
+			var latheGeometry = new THREE.LatheGeometry(points, Math.ceil(segments), 0, 2 * Math.PI);
+			latheMesh = createRookPedestal(latheGeometry, color);
+			var group = new THREE.Group();
+			group.add(latheMesh)
+			group.add(headMesh)
+			
+			group.position.x = posX;
+			group.position.y = posY
+			group.position.z = posZ;
+			
+			
+			group.rotateY(Math.PI)
+			return group
+			scene.add(group);
+
+			function createRookPedestal(geom, color) {
+
+					// assign two materials
+				var meshMaterial = new THREE.MeshLambertMaterial({color: color});
+				var meshMaterial = new THREE.MeshLambertMaterial({color: color});
+            //meshMaterial.side = THREE.DoubleSide;
+			meshMaterial.side = THREE.BackSide;
+			var mesh = new THREE.Mesh(geom, meshMaterial)
+			mesh.castShadow = true;
+				return mesh;
+			}
+			function drawCrown(posX, posY, posZ, color, scale){
+				var group = new THREE.Group();
+				for(var i = 0; i < 8; i++){
+					
+					var extrudeSettings = {
+						steps: 3,
+						depth: 10,
+						bevelEnabled: true,
+						bevelThickness: 0,
+						bevelSize: 5,
+						bevelOffset: 0,
+						bevelSegments: 1
+					};
+
+					var geometry = new THREE.ExtrudeGeometry( drawExShape(), extrudeSettings );
+					var material = new THREE.MeshLambertMaterial({color: color})
+					var mesh = new THREE.Mesh( geometry, material ) ;
+				//meshMaterial.side = THREE.DoubleSide;
+					material.side = THREE.FrontSide;
+					var mesh = new THREE.Mesh(geometry, material)
+					mesh.castShadow = true;				
+					//mesh.scale.set(0.5 / scale, 0.5 / scale, 0.5/ scale)
+					mesh.rotation.z = Math.PI / 2;
+					mesh.rotation.x = Math.PI / 2;
+					
+					mesh.rotation.z -= (Math.PI / 3) * i;
+					
+					
+					mesh.position.y = -18
+
+					group.add(mesh)
+				}
+				
+				////////////////////////////// 22222222
+				
+				group.scale.set(0.12 / scale, 0.12 / scale, 0.12 / scale)
+				//group.scale.set(0.06, 0.06, 0.06)
+				//scene.add( group )
+				return group
+				// setup the control gui
+				
+
+				function drawExShape(){
+					var shape = new THREE.Shape();
+					shape.moveTo(5,  21.1)
+					shape.lineTo(8.5,  20 )
+					shape.lineTo(8, 19.5)			
+					shape.lineTo(5, 21)
+					return shape
+				}
+			}
+		}
+		function keyboardControlRotation(){
+
+			
+			if(moveDirections == 1){
+				if(keyboard.down("up"))
+				{
+					if(currentSelect[0] < 7){
+						currentSelect[0] += 1
+						selectBoard(1, 0)
+					}
+				}
+				
+				if(keyboard.down("down"))
+				{
+					if(currentSelect[0] > 0){
+						currentSelect[0] -= 1
+						selectBoard(-1, 0)
+					}
+				}
+				
+				if(keyboard.down("left"))
+				{
+					if(currentSelect[1] > 0){
+						currentSelect[1] -= 1
+						selectBoard(0, -1)
+					}
+				}
+				
+				if(keyboard.down("right"))
+				{
+					if(currentSelect[1] < 7){
+						currentSelect[1] += 1
+						selectBoard(0, 1)
+					}
+				}
+			}
+			if(moveDirections == 3){
+				if(keyboard.down("left"))
+				{
+					if(currentSelect[0] < 7){
+						currentSelect[0] += 1
+						selectBoard(1, 0)
+					}
+				}
+				
+				if(keyboard.down("right"))
+				{
+					if(currentSelect[0] > 0){
+						currentSelect[0] -= 1
+						selectBoard(-1, 0)
+					}
+				}
+				
+				if(keyboard.down("down"))
+				{
+					if(currentSelect[1] > 0){
+						currentSelect[1] -= 1
+						selectBoard(0, -1)
+					}
+				}
+				
+				if(keyboard.down("up"))
+				{
+					if(currentSelect[1] < 7){
+						currentSelect[1] += 1
+						selectBoard(0, 1)
+					}
+				} 
+			}
+		}
+		function keyboard_input(){
+        
+            keyboard.update();
+
+			keyboardControlRotation()
+			
+			if(keyboard.down("X"))
+            {
+                if(selectState == 0){
+					if(selectFig()){
+						drawMovePosi();
+						
+					}
+				}
+				else{
+					moveFig()
+				
+				}
+            }
+			if(keyboard.down("T"))
+            {
+				showAllPossibleMoves(0);
+            }
+			if(keyboard.down("Y"))
+            {
+				showAllPossibleMoves(1);
+            }
+			if(keyboard.down("G"))
+            {
+				removePosiSquares();
+            }
+			
+			if(keyboard.down("Q"))
+            {
+				console.log(boardStatus)
+            }
+        }
+		function selectFig(){
+			if(boardStatus[currentSelect[0]][currentSelect[1]][0] != 0 && 
+				boardStatus[currentSelect[0]][currentSelect[1]][2] == turnTimer){
+				selectState = 1
+				boardSelectColor = BSColor2
+				selectBoard(0, 0)
+				selectedFig[0] = currentSelect[0];
+				selectedFig[1] = currentSelect[1]
+				selectedFig[2] = boardStatus[currentSelect[0]][currentSelect[1]][1];
+				selectedFig[3] = boardStatus[currentSelect[0]][currentSelect[1]][2];
+				boardStatus[currentSelect[0]][currentSelect[1]][0] = 4
+				return true
+			}
+			else return false
+		}
+		function moveFig(){
+			//cancel move
+			if(boardStatus[currentSelect[0]][currentSelect[1]][0] == 4){
+				selectState = 0
+				boardSelectColor = BSColor1
+				selectBoard(0, 0)
+				//boardStatus[currentSelect[0]][currentSelect[1]][0] = 5
+				
+				removePosiSquares();
+			}
+			//basic move
+			if(boardStatus[currentSelect[0]][currentSelect[1]][0] == 2){
+				selectState = 0
+				boardSelectColor = BSColor1
+				selectBoard(0, 0)
+				boardStatus[currentSelect[0]][currentSelect[1]][0] = 1
+				boardStatus[currentSelect[0]][currentSelect[1]][1] = selectedFig[2]
+				boardStatus[currentSelect[0]][currentSelect[1]][2] = selectedFig[3]
+				drawFig(selectedFig[2], selectedFig[3], selectedFig[0], selectedFig[1], currentSelect[0], currentSelect[1])
+				
+				boardStatus[selectedFig[0]][selectedFig[1]][1] = 0
+				boardStatus[selectedFig[0]][selectedFig[1]][2] = 0
+				removeObj("f" + getPosX(selectedFig[0]) + getPosX(selectedFig[1]))
+				
+				removePosiSquares();
+				
+				boardStatus[selectedFig[0]][selectedFig[1]][0] = 0
+				
+				tickMovePhase();
+			}
+			//attack move
+			if(boardStatus[currentSelect[0]][currentSelect[1]][0] == 3 &&
+			   boardStatus[currentSelect[0]][currentSelect[1]][2] != selectedFig[3]
+			){
+				selectState = 0
+				boardSelectColor = BSColor1
+				selectBoard(0, 0)
+				//removeObj("f" + currentSelect[0] + currentSelect[1])
+				removeObj("f" + getPosX(currentSelect[0]) + getPosX(currentSelect[1]))
+
+				removePosiSquares();
+				
+				boardStatus[currentSelect[0]][currentSelect[1]][0] = 1
+				boardStatus[currentSelect[0]][currentSelect[1]][1] = selectedFig[2]
+				boardStatus[currentSelect[0]][currentSelect[1]][2] = selectedFig[3]
+				
+				drawFig(selectedFig[2], selectedFig[3], selectedFig[0], selectedFig[1], currentSelect[0], currentSelect[1])
+				
+				boardStatus[selectedFig[0]][selectedFig[1]][0] = 0
+				boardStatus[selectedFig[0]][selectedFig[1]][1] = 0
+				boardStatus[selectedFig[0]][selectedFig[1]][2] = 0
+				removeObj("f" + getPosX(selectedFig[0]) + getPosX(selectedFig[1]))
+				
+				tickMovePhase();
+			}
+			else return false
+		
+		}
+		function drawMovePosi(){
+			if(selectedFig[2] == 2){
+			
+				if(selectedFig[3] == 0)
+					mov = -1
+				else mov = 1
+				
+				var i = selectedFig[0]
+				var j = selectedFig[1] 
+				
+
+				
+				if(i + mov < 8 && j - 1 >= 0 && i + mov >= 0 &&
+					boardStatus[i + mov][j - 1][0] == 1
+				&& selectedFig[3] != boardStatus[i + mov][j - 1][2]){
+					console.log("if 1")
+					boardStatus[i + mov][j - 1][0] = 3
+				}
+				if(i + mov < 8 && j + 1 < 8 && i + mov >= 0 &&
+					boardStatus[i + mov][j + 1][0] == 1
+				&& selectedFig[3] != boardStatus[i + mov][j + 1][2]){
+					console.log("if 2")
+					boardStatus[i + mov][j + 1][0] = 3
+				}
+				
+				if(i + mov < 8 && i + mov >= 0 &&
+					boardStatus[i + mov][j][0] != 1){
+					boardStatus[i + mov][j][0] = 2
+					if(i == 1 && mov == 1){
+						mov = mov * 2
+						if(boardStatus[i + mov][j][0] == 0)
+							boardStatus[i + mov][j][0] = 2
+					}
+					if(i == 6 && mov == -1){
+						mov = mov * 2
+						if(boardStatus[i + mov][j][0] == 0)
+							boardStatus[i + mov][j][0] = 2
+					}
+				}
+			}
+			if(selectedFig[2] == 3){
+				x = selectedFig[0]
+				y = selectedFig[1]
+				for(var i = 0; ((i + x) < 8) && ((i + y) < 8) ;i++){
+					if(boardStatus[i + x][i + y][0] == 0)
+						boardStatus[i + x][i + y][0] = 2
+					if(boardStatus[i + x][i + y][0] == 1)
+						if(boardStatus[i + x][i + y][2] != selectedFig[3]){
+							boardStatus[i + x][i + y][0] = 3
+							break;
+							}
+						else break
+				}
+				for(var i = 0; ((x - i) >= 0) && ((y + i) < 8) ;i++){
+					if(boardStatus[x - i][y + i][0] == 0)
+						boardStatus[x - i][y + i][0] = 2
+					if(boardStatus[x - i][y + i][0] == 1)
+						if(boardStatus[x - i][y + i][2] != selectedFig[3]){
+							boardStatus[x - i][y + i][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; ((x - i) >= 0) && ((y - i) >= 0) ;i++){
+					if(boardStatus[x - i][y - i][0] == 0)
+						boardStatus[x - i][y - i][0] = 2
+					if(boardStatus[x - i][y - i][0] == 1)
+						if(boardStatus[x - i][y - i][2] != selectedFig[3]){
+							boardStatus[x - i][y - i][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; ((i + x) < 8) && ((y - i) >= 0) ;i++){
+					if(boardStatus[x + i][y - i][0] == 0)
+						boardStatus[x + i][y - i][0] = 2
+					if(boardStatus[x + i][y - i][0] == 1)
+						if(boardStatus[x + i][y - i][2] != selectedFig[3]){
+							boardStatus[x + i][y - i][0] = 3
+							break;
+							}
+						else break
+				}
+			
+			}
+			if(selectedFig[2] == 4){
+				x = selectedFig[0]
+				y = selectedFig[1]
+				for(var i = 0; ((i + x) < 8) && (y < 8) ;i++){
+					if(boardStatus[i + x][y][0] == 0)
+						boardStatus[i + x][y][0] = 2
+					if(boardStatus[i + x][y][0] == 1)
+						if(boardStatus[i + x][y][2] != selectedFig[3]){
+							boardStatus[i + x][y][0] = 3
+							break;
+							}
+						else break
+				}
+				for(var i = 0; ((x - i) >= 0) && (y < 8) ;i++){
+					if(boardStatus[x - i][y][0] == 0)
+						boardStatus[x - i][y][0] = 2
+					if(boardStatus[x - i][y][0] == 1)
+						if(boardStatus[x - i][y][2] != selectedFig[3]){
+							boardStatus[x - i][y][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; (x >= 0) && ((y + i) < 8) ;i++){
+					if(boardStatus[x][y + i][0] == 0)
+						boardStatus[x][y + i][0] = 2
+					if(boardStatus[x][y + i][0] == 1)
+						if(boardStatus[x][y + i][2] != selectedFig[3]){
+							boardStatus[x][y + i][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; (x >= 0) && ((y - i) >= 0) ;i++){
+					if(boardStatus[x][y - i][0] == 0)
+						boardStatus[x][y - i][0] = 2
+					if(boardStatus[x][y - i][0] == 1)
+						if(boardStatus[x][y - i][2] != selectedFig[3]){
+							boardStatus[x][y - i][0] = 3
+							break
+							}
+						else break
+				}
+			
+			}
+			if(selectedFig[2] == 5){
+				x = selectedFig[0]
+				y = selectedFig[1]
+				horseMove(2, 1)
+				horseMove(1, 2)
+				horseMove(-2, 1)
+				horseMove(1, -2)
+				horseMove(-2, -1)
+				horseMove(-1, -2)
+				horseMove(-1, 2)
+				horseMove(2, -1)
+			
+			}
+			if(selectedFig[2] == 6){
+				x = selectedFig[0]
+				y = selectedFig[1]
+				horseMove(1, 0)
+				horseMove(1, 1)
+				horseMove(0, 1)
+				horseMove(-1, 1)
+				
+				horseMove(-1, 0)
+				horseMove(1, -1)
+				horseMove(0, -1)
+				horseMove(-1, -1)
+				
+			}
+			if(selectedFig[2] == 7){
+				x = selectedFig[0]
+				y = selectedFig[1]
+				for(var i = 0; ((i + x) < 8) && ((i + y) < 8) ;i++){
+					if(boardStatus[i + x][i + y][0] == 0)
+						boardStatus[i + x][i + y][0] = 2
+					if(boardStatus[i + x][i + y][0] == 1)
+						if(boardStatus[i + x][i + y][2] != selectedFig[3]){
+							boardStatus[i + x][i + y][0] = 3
+							break;
+							}
+						else break
+				}
+				for(var i = 0; ((x - i) >= 0) && ((y + i) < 8) ;i++){
+					if(boardStatus[x - i][y + i][0] == 0)
+						boardStatus[x - i][y + i][0] = 2
+					if(boardStatus[x - i][y + i][0] == 1)
+						if(boardStatus[x - i][y + i][2] != selectedFig[3]){
+							boardStatus[x - i][y + i][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; ((x - i) >= 0) && ((y - i) >= 0) ;i++){
+					if(boardStatus[x - i][y - i][0] == 0)
+						boardStatus[x - i][y - i][0] = 2
+					if(boardStatus[x - i][y - i][0] == 1)
+						if(boardStatus[x - i][y - i][2] != selectedFig[3]){
+							boardStatus[x - i][y - i][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; ((i + x) < 8) && ((y - i) >= 0) ;i++){
+					if(boardStatus[x + i][y - i][0] == 0)
+						boardStatus[x + i][y - i][0] = 2
+					if(boardStatus[x + i][y - i][0] == 1)
+						if(boardStatus[x + i][y - i][2] != selectedFig[3]){
+							boardStatus[x + i][y - i][0] = 3
+							break;
+							}
+						else break
+				}
+				for(var i = 0; ((i + x) < 8) && (y < 8) ;i++){
+					if(boardStatus[i + x][y][0] == 0)
+						boardStatus[i + x][y][0] = 2
+					if(boardStatus[i + x][y][0] == 1)
+						if(boardStatus[i + x][y][2] != selectedFig[3]){
+							boardStatus[i + x][y][0] = 3
+							break;
+							}
+						else break
+				}
+				for(var i = 0; ((x - i) >= 0) && (y < 8) ;i++){
+					if(boardStatus[x - i][y][0] == 0)
+						boardStatus[x - i][y][0] = 2
+					if(boardStatus[x - i][y][0] == 1)
+						if(boardStatus[x - i][y][2] != selectedFig[3]){
+							boardStatus[x - i][y][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; (x >= 0) && ((y + i) < 8) ;i++){
+					if(boardStatus[x][y + i][0] == 0)
+						boardStatus[x][y + i][0] = 2
+					if(boardStatus[x][y + i][0] == 1)
+						if(boardStatus[x][y + i][2] != selectedFig[3]){
+							boardStatus[x][y + i][0] = 3
+							break
+							}
+						else break
+				}
+				for(var i = 0; (x >= 0) && ((y - i) >= 0) ;i++){
+					if(boardStatus[x][y - i][0] == 0)
+						boardStatus[x][y - i][0] = 2
+					if(boardStatus[x][y - i][0] == 1)
+						if(boardStatus[x][y - i][2] != selectedFig[3]){
+							boardStatus[x][y - i][0] = 3
+							break
+							}
+						else break
+				}
+
+			
+			}
+			
+			drawPosiSquares();
+			function horseMove(i, j){
+				if((x + i) < 8 && (y + j) < 8 && (x + i) >= 0 && (y + j) >= 0){
+					if(boardStatus[x + i][y + j][0] == 0)
+						boardStatus[x + i][y + j][0] = 2
+					if(boardStatus[x + i][y + j][0] == 1)
+						if(boardStatus[x + i][y + j][2] != selectedFig[3]){
+							boardStatus[x + i][y + j][0] = 3
+						}
+				}
+			}
+		}
+		function drawPosiSquares(){
+			for(var i = 0; i < 8; i++){
+				for(var j = 0; j < 8; j++){
+					if(boardStatus[i][j][0] > 1 && boardStatus[i][j][0] != 4){
+						var name = "p" + i + j
+						removeObj(name)
+						createSquare(i, j, boardPathColor)
+					}
+					if(boardStatus[i][j][0] == 4){
+						var name = "p" + i + j
+						removeObj(name)
+						createSquare(i, j, boardFigSelectColor)
+					}
+				
+				}
+			}
+		}
+		function removePosiSquares(){
+			for(var i = 0; i < 8; i++){
+				for(var j = 0; j < 8; j++){
+					if(boardStatus[i][j][0] == 2){
+						var name = "p" + i + j
+						removeObj(name)
+						if((i + j) % 2 == 0) createSquare(i, j, boardColor1)				
+						else createSquare(i, j, boardColor2)
+						
+						boardStatus[i][j][0] = 0
+					}
+					if(boardStatus[i][j][0] == 3){
+						var name = "p" + i + j
+						removeObj(name)
+						if((i + j) % 2 == 0) createSquare(i, j, boardColor1)				
+						else createSquare(i, j, boardColor2)
+						
+						boardStatus[i][j][0] = 1
+					}
+					if(boardStatus[i][j][0] == 4){
+						//console.log(i, j)
+						var name = "p" + i + j
+						removeObj(name)
+						if((i + j) % 2 == 0) createSquare(i, j, boardColor1)				
+						else createSquare(i, j, boardColor2)
+						
+						boardStatus[i][j][0] = 1
+					}
+				}
+			}
+		}
+		function showAllPossibleMoves(side){
+			for(var i = 0; i < 8;i++){
+				for(var j = 0; j < 8;j++){
+					if(boardStatus[i][j][2] == side){
+						
+						selectedFig[0] = i
+						selectedFig[1] = j
+						selectedFig[2] = boardStatus[i][j][1]
+						selectedFig[3] = side
+						
+						//console.log(i, j)
+						//console.log(boardStatus)
+						drawMovePosi();
+					}
+				
+				}
+			}
+		
+		
+		}
+		function addSpotLight(){
+			var spotLight = new THREE.SpotLight( 0xffffff );
+			spotLight.position.set( -40, 100, 40 );
+			spotLight.castShadow = true;
+			spotLight.shadow.camera.near = 1;
+			spotLight.shadow.camera.far = 4000;
+			spotLight.shadow.camera.position.y=200;
+			spotLight.angle = 0.5;
+			spotLight.shadow.camera.left = 1
+			spotLight.shadow.mapSize.width = 4096
+			spotLight.shadow.mapSize.height = 4096
+			scene.add( spotLight );
+			
+			var shadowCameraHelper = new THREE.CameraHelper(spotLight.shadow.camera);
+			shadowCameraHelper.visible = true;
+			//scene.add(shadowCameraHelper);
+			
+			var spotLightHelper = new THREE.SpotLightHelper(spotLight);
+			//scene.add(spotLightHelper)
+			
+		}
+		function addCamera(){
+			camera.position.x = 80;
+			camera.position.y = 80;
+			camera.position.z = 1;
+			camera.lookAt(scene.position);
+		}
+		function addBoard(){
+			
+			for(var i = 0; i < 8;i++){
+				for(var j = 0; j < 8; j++){
+					if((i + j) % 2 == 0) createSquare(i, j, boardColor1)				
+					else createSquare(i, j, boardColor2)
+
+				}
+			}
+			//scene.add(group)
+		}
+		function createSquare(i, j, color){
+			sizeOfSqr = 4
+			planeOffset = 4 * sizeOfSqr
+			
+			var planeGeometry = new THREE.CubeGeometry(sizeOfSqr, sizeOfSqr,sizeOfSqr);
+			var planeMaterial =    new THREE.MeshLambertMaterial({color: color});
+			
+			var plane = new THREE.Mesh(planeGeometry,planeMaterial);
+			plane.rotation.x = -0.5*Math.PI;
+			plane.position.x = planeOffset - sizeOfSqr * i
+			plane.position.y = 0
+			plane.position.z = planeOffset - sizeOfSqr * j
+			
+			plane.receiveShadow = true;
+			plane.castShadow = true;
+			
+			//console.log(planeOffset - sizeOfSqr * i, planeOffset - sizeOfSqr * j)
+			plane.name = "p" + i + j
+			
+			//console.log('plane name', plane.name)
+			
+			scene.add(plane)
+			//group.add(plane)
+		
+		}
+		function getPosX(x){
+			//console.log(16 - x * 4)
+			return 16 - x * 4
+		
+		}
+		function getPosY(y){
+			//console.log(16 - y * 4)
+			return 16 - y * 4
+		}
+		function getSqNum(x){
+			return (16 - x) / 4
+		}
+		function tickMovePhase(){
+			turnTimer = (turnTimer + 1) % 2
+		}
+		function removeObj(name){
+			//console.log('delete', name)
+			//console.log(scene.children.length)
+			var selectedObject = scene.getObjectByName(name, true);
+			//console.log(selectedObject)
+			scene.remove( selectedObject );
+			//console.log(scene.children.length)
+			//console.log(scene)
+			//console.log('%%%%%%%%%%%%%%%%%')
+		}
+		function render(){
+			// render
+			stats.update()
+			guiControls.update()
+			keyboard_input();
+			renderer.setClearColor(0xFFFFFF, 1.0);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.shadowMap.Type=THREE.PCFSoftShadowMap;
+			renderer.shadowMap.enabled = true;
+			if(curCam == 1)
+				renderer.render( scene, camera );
+			if(curCam == 2)
+				renderer.render( scene, camera2 );
+			animateStuff();
+			//controls.update(); 
+			console.log(controls.update())
+			requestAnimationFrame( render );
+			//console.log("a")
+			
+			
+		}
+        function initStats() {
+
+			var stats = new Stats();
+			stats.setMode(0); // 0: fps, 1: ms
+
+			// Align top-left
+			stats.domElement.style.position = 'absolute';
+			stats.domElement.style.left = '0px';
+			stats.domElement.style.top = '0px';
+
+			$("#Stats-output").append(stats.domElement);
+
+			return stats;
+		}
+	});
+
+
+
+</script>
+</body>
+</html>

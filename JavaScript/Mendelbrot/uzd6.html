@@ -1,0 +1,334 @@
+
+<html>
+    <head>
+        <title>Chaosas uzd 6</title>
+        <style type="text/css">
+            canvas {
+                border: 0px solid #A0A0A0;
+                background: white;
+                display: block;
+            }
+            .slidecontainer {
+            width: 100%;
+            }
+
+            .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            /* -webkit-transition: .2s; */
+            /* transition: opacity .2s; */
+            }
+
+            .slider:hover {
+            opacity: 1;
+            }
+
+            .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            }
+
+            .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            }
+        </style>
+    </head>
+    <body style="background-color:#282c34;">
+    <canvas id="canvas" width="1024" height="1024">
+    	Your browser does not support HTML5 Canvas.
+    </canvas>
+    <label for="iteNum" style="color:#ffffff"> Real</label>
+    <input type="text" id="real" name="real" value="-0.7452905811623247" size="1">
+    <label for="xStart" style="color:#ffffff"> Imaginary</label>
+    <input type="text" id="imaginary" name="imaginary" value="0.09517159318637258" size="1">
+    <!-- <div class="slidecontainer" width="500px">
+        <input type="range" min="1" max="1000000" value="50" class="slider" id="myRange" >
+    </div> -->
+    <!-- <p style="color:white">Value: <span id="demo"></span></p>
+    <p style="color:white">MousePos: <span id="mousePos"></span></p> -->
+    <br>
+    
+    <button onclick="draw()">Julia</button>
+    <button onclick="mandelbrot()">Mandelbrot</button>
+    <button onclick="drawTestNewton()">Newton</button>
+    <br>
+    <p id="decodedMessage" style="color:#ffffff"></p>
+    <script>
+        var canvas;
+        var ctx;
+        var canvasHeight = 1024
+        var paraReal, paraImag;
+        var canvasWidth = document.getElementById("canvas").width;
+        var slider = document.getElementById("myRange");
+        // var output = document.getElementById("demo");
+        // output.innerHTML = slider.value / 10000;
+        //var screenInformation
+
+        init();
+        function init(){
+            // slider.oninput = function() {
+            //     let rConst = this.value / 10000
+            //     let x = 0.5
+            //     output.innerHTML = (Math.pow(x, 2) - (rConst * Math.pow(x, 6)) + 2) * 1024 
+            //     //rConst = this.value / 10000;
+            //     //clearCanvas()
+            //     //draw()
+            // }
+            canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                ctx = canvas.getContext("2d");
+            }
+            // canvas.addEventListener('mousemove', function(evt) {
+            //     var mousePos = getMousePos(canvas, evt);
+            //     var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y + " || " + ((4/(canvasHeight) * mousePos.x) + -2) + "," + (((4/(canvasHeight) * mousePos.y) + -2)*-1);
+            //     writeMessage(canvas, message);
+            // }, false);
+            //ctx.transform(0.5, 0, 0, 0.5, 0, 0)
+            //drawShape()
+            clearCanvas()
+        }
+        function mandelbrot(){
+            clearCanvas()
+            let canlength = 4
+            let canWidth = 4
+            let size = 4
+            let incY = canWidth / canvasHeight
+            let incX = canlength / canvasWidth
+            let coordX = -(canlength/2)
+            let coordY = canWidth/2
+            let test = 0
+            let minX = 9999
+            let maxX = -9999
+            for(let i = 0; i < canvasWidth; i++){
+                coordY = canWidth/2
+                for(let j = 0; j < canvasHeight; j++){
+                    let temp = loopThroughMandel(coordX, coordY)
+                    if(temp > 0){
+                        test = test + 1
+                        //console.log(temp)
+                    }
+                    drawPixel(coordX, coordY, temp, canlength, canWidth)
+                    
+                    coordY = coordY - incY
+                    //console.log(coordX, coordY)
+                }
+                coordX = coordX + incX
+                if(coordX > maxX){
+                    maxX = coordX
+                }
+                if(coordX < minX){
+                    minX = coordX
+                }
+            }
+            console.log(maxX, minX)
+            console.log(test)
+        }
+        function juliaMandel(x, y, real, imag){
+            let a = (x * x * x) + (3 * x * y * y * -1)
+            let b = (3 * x * x * y) + (y * y * y * -1)
+            a = a * real
+            b = b * imag
+            a = a + x + real
+            b = b + y + imag
+
+            // let a = x * x
+            // a = a + (y * y * -1)
+            // let b = 2 * x * y
+            // a = a + real
+            // b = b + imag
+            return [a, b]
+        }
+        function loopThroughMandel(real, imag){
+            ans = [0, 0]
+            let sum = 0
+            let range = 4
+            for(let i = 0; i < 511; i++){
+                ans = juliaMandel(ans[0], ans[1], real, imag)
+                //console.log(ans)
+                if(ans[0] > -range && ans[0] < range && ans[1] > -range && ans[1] < range){
+                    sum++
+                }
+                else break
+            }
+            return sum
+        }
+        function getPara(){
+            paraReal = parseFloat(document.getElementById("real").value)
+            paraImag = parseFloat(document.getElementById("imaginary").value)
+        }
+        function draw(){
+            clearCanvas()
+            getPara()
+            let size = 4
+            let inc = 4 / canvasHeight
+            let coordX = -2
+            let coordY = 2
+            let test = 0
+            for(let i = 0; i < canvasWidth; i++){
+                coordY = 2
+                for(let j = 0; j < canvasHeight; j++){
+                    let temp = loopThrough(coordX, coordY)
+                    if(temp > 0){
+                        test = test + 1
+                        //console.log(temp)
+                    }
+                    drawPixel(coordX, coordY, temp, 4, 4)
+                    
+                    coordY = coordY - inc
+                    //console.log(coordX, coordY)
+                }
+                coordX = coordX + inc
+            }
+            console.log(test)
+            // console.log(loopThrough(0, 0))
+        }
+        function loopThrough(x, y){
+            ans = [x, y]
+            let sum = 0
+            for(let i = 0; i < 511; i++){
+                ans = juliaSet(ans[0], ans[1])
+                //console.log(ans)
+                if(ans[0] > -2 && ans[0] < 2 && ans[1] > -2 && ans[1] < 2){
+                    sum++
+                }
+                else break
+            }
+            return sum
+        }
+        function juliaSet(x, y){
+            let a = (x * x * x) + (3 * x * y * y * -1)
+            let b = (3 * x * x * y) + (y * y * y * -1)
+            a = a * paraReal
+            b = b * paraReal
+            a = a + x + paraReal
+            b = b + y + paraImag
+
+            // let a = x * x
+            // a = a + (y * y * -1)
+            // let b = 2 * x * y
+            // a = a + paraReal
+            // b = b + paraImag
+            return [a, b]
+        }
+        function drawNewton(par, prr){
+            // clearCanvas()
+            // getPara()
+            let size = 16
+            let inc = size / canvasHeight
+            let coordX = -size/2
+            let coordY = size/2
+            let test = 0
+            let colorTest = 0
+            for(let i = 0; i < canvasWidth; i++){
+                coordY = size/2
+                for(let j = 0; j < canvasHeight; j++){
+                    let temp = loopThroughNewton(coordX, coordY, par, prr)
+                    if(temp > 0){
+                        test = test + 1
+                        colorTest = colorTest + temp
+                        //console.log(temp)
+                    }
+                    drawPixel(coordX, coordY, temp, size, size)
+                    
+                    coordY = coordY - inc
+                    //console.log(coordX, coordY)
+                }
+                coordX = coordX + inc
+            }
+            console.log(test, colorTest/(canvasHeight*canvasWidth), par, prr)
+            // console.log(loopThrough(0, 0))
+        }
+        function drawTestNewton(){
+            // for(let i = 0; i < 100; i++){
+            //     drawNewton(1, 1)
+            //     //16.704025268554688 0.4 5
+            //     //18.034954071044922 0.4 5.4
+            //     //18.50483798980713 0.42 5.4
+            // }
+            drawNewton(1, 1)
+        }
+
+
+        function loopThroughNewton(x, y, paraReal, paraImag){
+            ans = [x, y]
+            let sum = 0
+            let range = 4
+            for(let i = 0; i < 511; i++){
+                ans = newtonTransform(ans[0], ans[1], paraReal, paraImag)
+                //console.log(ans)
+                if(ans[0] > -range && ans[0] < range && ans[1] > -range && ans[1] < range){
+                    sum++
+                }
+                else break
+            }
+            return sum
+        }
+
+        function newtonTransform(x, y, paraReal, paraImag){
+            let a = (x * x * x) + (3 * x * y * y * -1)
+            let b = (3 * x * x * y) + (y * y * y * -1)
+            a = a * paraReal * 2
+            b = b * paraImag * 2
+            a = a - paraReal
+            b = b - paraImag
+            let c = ((x * x) + (y * y * -1)) * 3 * paraReal + 1
+            let d = 2 * x * y * 3 * paraImag
+            return [((a*c)+(b*d))/(c*c + d*d), ((b*c)-(a*d))/(c*c + d*d)]
+        }
+        function drawPixel(x, y, color, length, width){
+            // if(y < 0 || y > 512){
+            //     //console.log(y)
+            // }
+            //console.log(x, y)
+            //console.log(color)
+            //x = (x * (canvasHeight / 4)) + (canvasHeight / 2)
+            x = (x * (canvasWidth / length)) + (canvasWidth)/2
+            y = (y * (-canvasHeight / width)) + (canvasHeight / 2)
+            if(x > canvasWidth && x < 0 && y > canvasHeight && y < 0){
+                
+            }
+            //console.log(x, y)
+            let green = color
+            let red = 0
+            if(green > 255){
+                red = color - 255
+                green = 255 - red
+                
+            }
+            ctx.beginPath();
+            ctx.fillStyle = "rgb(" + red + "," + 0 + "," + green + ")";
+            //console.log("rgb(" + 0 + "," + 0 + "," + 0 + ")")
+            ctx.rect(x, y, 1, 1);
+            ctx.fill()
+        }
+        function clearCanvas(){
+            ctx.beginPath()
+            // ctx.fillStyle = "rgb(" + 0 + "," + 0 + "," + 0 + ")";
+            ctx.rect(0, 0, canvasWidth, canvasHeight)
+            ctx.fill()
+        }
+        function getMousePos(canvas, evt) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+        // function writeMessage(canvas, message) {
+        //     document.getElementById("mousePos").innerHTML = message;
+        // }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+
+<html>
+    <head>
+        <title>Chaosas uzd 5</title>
+        <style type="text/css">
+            canvas {
+                border: 0px solid #A0A0A0;
+                background: white;
+                display: block;
+            }
+            .slidecontainer {
+            width: 100%;
+            }
+
+            .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            /* -webkit-transition: .2s; */
+            /* transition: opacity .2s; */
+            }
+
+            .slider:hover {
+            opacity: 1;
+            }
+
+            .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            }
+
+            .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            }
+        </style>
+    </head>
+    <body style="background-color:#282c34;">
+    <canvas id="canvas" width="512" height="512">
+    	Your browser does not support HTML5 Canvas.
+    </canvas>
+    <p style="color:white">Feigenbaum medžio fraktalinė dimensija: 1.4871484751837436</p>
+    <p style="color:white">Parametro reikšmė: <span id="demo"></span>
+        <div class="slidecontainer" width="500px">
+            <input type="range" min="0" max="2000" value="0" class="slider" id="myRange" >
+        </div>
+    </p>
+    <p style="color:white">X pradinė reikšmė: <span id="demo2">
+        <div class="slidecontainer" width="500px">
+            <input type="range" min="-200" max="200" value="0.5" class="slider" id="myRangeX" >
+        </div>
+    </p>
+    <!-- <p style="color:white">MousePos: <span id="mousePos"></span></p> -->
+    <br>
+    
+    <button onclick="draw()">Feigenbaum</button>
+    <button onclick="drawOrbit()">Orbit</button>
+    <br>
+    <button onclick="drawWithBi()">Feigenbaum su bifurkacija</button>
+    <script>
+        var canvas;
+        var ctx;
+        var rConst;
+        var canvasHeight = 512
+        var xStart = 1.64
+        var canvasWidth = document.getElementById("canvas").width;
+        var slider = document.getElementById("myRange");
+        var sliderX = document.getElementById("myRangeX")
+        var output = document.getElementById("demo");
+        var outputX = document.getElementById("demo2");
+        var minVal = 0
+        var maxVal = 512
+        //output.innerHTML = slider.value / 100;
+        //var screenInformation
+
+        init();
+        function init(){
+            slider.oninput = function() {
+                output.innerHTML = this.value / 10000
+                rConst = this.value / 10000;
+                drawOrbit()
+            }
+            sliderX.oninput = function() {
+                outputX.innerHTML = this.value / 100
+                xStart = this.value / 100;
+                drawOrbit()
+            }
+            canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                ctx = canvas.getContext("2d");
+            }
+            canvas.addEventListener('mousemove', function(evt) {
+                var mousePos = getMousePos(canvas, evt);
+                var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+                //writeMessage(canvas, message);
+            }, false);
+            //output.innerHTML = output.slider.value / 10000
+            //ctx.transform(0.5, 0, 0, 0.5, 0, 0)
+            //drawShape()
+            clearCanvas()
+            drawNumberLine(1,1)
+        }
+        function drawWithBi(){
+            let array = draw()
+            for(let i = 3; i < canvasWidth - 3; i++){
+                let biCount = 0
+                if(isDouble(array[i])){
+                    // plotPixelColor(i, array[i], "red")
+                    // console.log(countBi(array[i]))
+                    // if(countBi(array[i]) == 1){
+                    //     plotPixelColor(i, array[i], "green")
+                    // }
+                    // if(countBi(array[i]) == 2){
+                    //     plotPixelColor(i, array[i], "blue")
+                    // }
+                    // if(countBi(array[i]) == 3){
+                    //     plotPixelColor(i, array[i], "magenta")
+                    // }
+                    // if(countBi(array[i]) == 4){
+                    //     plotPixelColor(i, array[i], "yellow")
+                    // }
+                    let temp2 = countBi(array[i])
+                    if(temp2 < 10){
+                        let temp1 = countBi(array[i - 1])
+                        if(temp1 != temp2){
+                            drawSmallCircle(i, array[i], temp2)
+                        }
+                    }
+                }
+            }
+            //drawSmallCircle(10,10)
+        }
+        function countBi(array){
+            let tempArray = new Array(1)
+            tempArray[0] = array[0]
+            for(let i = 1; i < array.length; i++){
+                let flag = false
+                let count = 0
+                for(let j = 0; j < tempArray.length; j++){
+                    let error = tempArray[j] / 96
+                    if(Math.abs(tempArray[j] - array[i]) > error){
+                        count += 1
+                        //console.log("break")
+                    }
+                }
+                if(tempArray.length - 1 != count){
+                    tempArray.length += 1 
+                    tempArray[tempArray.length - 1] = array[i]
+                }
+            }
+            return tempArray.length
+        }
+        function isDouble(array){
+            let count = array.length
+            let eqCount = array[0] / 10
+            let inEqCount = array[1] / 10
+            if(Math.abs(array[0] - array[1]) > eqCount / 10){
+                for(let i = 2; i < count; i+=2){
+                    if(Math.abs(array[0] - array[i]) > eqCount){
+                        return false
+                    }
+                    if(Math.abs(array[1] - array[i + 1]) > inEqCount){
+                        return false
+                    }
+                }
+            }
+            else{
+                return false
+            }
+            return true
+        }
+        function drawSmallCircle(x, array, count){
+            for(let i = 0; i < count; i++){
+                ctx.beginPath()
+                ctx.fillStyle = "#FF0000";
+                ctx.arc(x, transY(array[i]), 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            // ctx.beginPath()
+            // ctx.fillStyle = "#00FF00";
+            // ctx.arc(x, y, 3, 0, 2 * Math.PI);
+            // ctx.fill();
+        }
+        function draw(){
+            clearCanvas()
+            rConst = 0.02681
+            let increment = 0.0512 / canvasWidth
+            xStart = 1.64
+            let array = new Array(canvasWidth)
+            for(let i = 0; i < canvasWidth; i++){
+                rConst += increment
+                //console.log(rConst)
+                array[i] = oneCycle()
+                plotPixel(i, array[i])
+                //console.log(rConst, oneCycle())
+            }
+            drawXNumber(0.02681, rConst)
+            console.log("done")
+            return array
+        }
+        function drawNumberLine(upbound, downbound){
+            ctx.font = "15px Arial"
+            ctx.fillStyle = "Black"
+            let temp = Math.abs(upbound - downbound) / 8
+            let num = upbound
+            for(let i = 6; i <= canvasHeight - 8;i += (canvasHeight - 14) / 8){
+                ctx.fillText(num, canvasWidth - 27, i+8)
+                num -= temp
+            }
+            //ctx.font = "30px Arial";
+            //ctx.fillStyle = "red"
+            //ctx.fillText("Hello World",10,50);
+                        
+        }
+        function drawXNumber(upbound, downbound){
+            ctx.font = "15px Arial"
+            ctx.fillStyle = "Black"
+            let temp = Math.abs(upbound - downbound) / 8
+            let num = upbound
+            console.log(upbound, downbound)
+            for(let i = 0; i <= canvasWidth - 0;i += (canvasWidth - 0) / 8){
+                ctx.fillText(num.toFixed(4), i + 8, canvasHeight - 5)
+                num += temp
+            }
+        }
+        function drawOrbit(){
+            clearCanvas()
+            let oneStep = canvasWidth / 32
+            let xSt = xStart
+            let xS = xSt
+            let yS = xSt
+            for(let i = oneStep; i <= canvasWidth; i = i + oneStep){
+                xSt = feigenbaumEq(xSt)
+                let transXSt = transformCoord(xSt)
+                let transYS = transformCoord(yS)
+                drawCircle(i, transXSt)
+                drawLine(i, transXSt, xS, transYS)
+                xS = i
+                yS = xSt
+            }
+            // testDraw(transformCoord(-3.4), "red")
+            drawNumberLine(3.5, -3.5)
+            //drawCircle(i, 50)
+            //drawCircle(50, 50)
+        }
+        function transformCoord(x){
+            let temp = x * canvasHeight/7
+            temp = canvasHeight/2 - temp
+            return temp
+        }
+        function drawCircle(x, y){
+            // y = y * canvasHeight
+            // y = canvasHeight - y
+            ctx.beginPath()
+            ctx.strokeStyle = "#FF0000";
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+        function drawLine(xS, yS, xE, yE){
+            //console.log(xS, yS, xE, yE)
+            // yS = yS * canvasHeight
+            // yS = canvasHeight - yS
+            // yE = yE * canvasHeight
+            // yE = canvasHeight - yE
+            ctx.beginPath()
+            ctx.moveTo(xS, yS)
+            ctx.lineTo(xE, yE)
+            ctx.strokeStyle = "#000000";
+            ctx.stroke()
+        }
+        function feigenbaumEq(x){
+            //console.log(Math.pow(x, 2), rConst * Math.pow(x, 6), Math.pow(x, 2) - (rConst * Math.pow(x, 6)))
+            return Math.pow(x, 2) - (rConst * Math.pow(x, 6))
+            //return rConst * Math.sin(x)
+            //return rConst * x * (1 - x)
+        }
+        function oneCycle(){
+            let array = new Array(canvasHeight);
+            let xValue = feigenbaumEq(xStart)
+            for(let j = 0; j < 100; j++){
+                xValue = feigenbaumEq(xValue)
+            }
+            for(let i = 0; i < canvasHeight; i++){
+                xValue = feigenbaumEq(xValue)
+                array[i] = xValue
+            }
+            return array
+        }
+        function plotPixel(x, array){
+            //console.log(array)
+            for(y of array){
+                drawPixel(x, transY(y))
+                //drawPixel(x + 1, (y - 1) * -canvasHeight)
+            }
+            // testDraw(transY(-2), "blue")
+            // testDraw(transY(-1), "blue")
+            // testDraw(transY(0), "red")
+            // testDraw(transY(1), "blue")
+            // testDraw(transY(2), "blue")
+        }
+        function plotPixelColor(x, array, color){
+            for(y of array){
+                testPointDraw(x, transY(y), color)
+            }
+        }
+        function transY(y){
+            return ((y)  * (canvasHeight/2.5) - (canvasHeight)) * -1 -1
+        }
+        function drawPixel(x, y){
+            if(y < 0 || y > 512){
+                //console.log(y)
+            }
+            //console.log(y)
+            if(y < 511){
+                if(minVal > x){
+                    minVal = x
+                }
+                if(maxVal < x){
+                    maxVal = x
+                }
+            }
+            ctx.beginPath();
+            ctx.fillStyle = "black";
+            ctx.rect(x, y, 1, 1);
+            ctx.fill()
+        }
+        function clearCanvas(){
+            ctx.beginPath()
+            ctx.fillStyle = "white";
+            ctx.rect(0, 0, canvasWidth, canvasHeight)
+            ctx.fill()
+        }
+        function getMousePos(canvas, evt) {
+            var rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+        function writeMessage(canvas, message) {
+            document.getElementById("mousePos").innerHTML = message;
+        }
+        function testPointDraw(x, y, color){
+            // console.log(x, y, color)
+            ctx.beginPath()
+            ctx.fillStyle = color
+            ctx.rect(x, y, 1, 1);
+            ctx.fill()
+        }
+        function testDraw(y, color){
+            console.log(y)
+            ctx.beginPath()
+            ctx.fillStyle = color
+            ctx.rect(0, y, canvasWidth, 1)
+            ctx.fill()
+        }
+    </script>
+</body>
+</html>
