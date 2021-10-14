@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import java.lang.*?>
+<?import java.util.*?>
+<?import javafx.scene.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane prefHeight="284.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="student.view.ModifyController">
+   <children>
+      <ChoiceBox fx:id="groupChoiceBox" layoutX="8.0" layoutY="42.0" onAction="#loadStudents" prefHeight="31.0" prefWidth="166.0" />
+      <ChoiceBox fx:id="studentChoiceBox" layoutX="217.0" layoutY="39.0" onAction="#loadDates" prefHeight="31.0" prefWidth="166.0" />
+      <ChoiceBox fx:id="dateChoiceBox" layoutX="426.0" layoutY="42.0" onAction="#saveDateSelect" prefHeight="31.0" prefWidth="166.0" />
+      <TextField fx:id="groupTextField" layoutX="8.0" layoutY="117.0" prefHeight="31.0" prefWidth="166.0" />
+      <TextField fx:id="studentNameTextField" layoutX="193.0" layoutY="114.0" prefHeight="31.0" prefWidth="98.0" />
+      <DatePicker fx:id="datePicker" layoutX="426.0" layoutY="117.0" prefHeight="31.0" prefWidth="166.0" />
+      <Button fx:id="changeGroupNameButton" layoutX="8.0" layoutY="164.0" mnemonicParsing="false" onAction="#changeGroupName" prefHeight="31.0" prefWidth="166.0" text="Change Group Name" />
+      <Button fx:id="deleteGroupButton" layoutX="8.0" layoutY="215.0" mnemonicParsing="false" onAction="#deleteGroup" prefHeight="31.0" prefWidth="166.0" text="Delete Group" />
+      <Button fx:id="changeStudentNameButton" layoutX="213.0" layoutY="161.0" mnemonicParsing="false" onAction="#changeStudentName" prefHeight="31.0" prefWidth="174.0" text="Change Student Name" />
+      <Button fx:id="deleteStudentButton" layoutX="217.0" layoutY="212.0" mnemonicParsing="false" onAction="#deleteStudent" prefHeight="31.0" prefWidth="166.0" text="Delete Student" />
+      <Button fx:id="changeDate" layoutX="426.0" layoutY="164.0" mnemonicParsing="false" onAction="#changeDate" prefHeight="31.0" prefWidth="166.0" text="Change Date" />
+      <Button fx:id="deleteDate" layoutX="426.0" layoutY="215.0" mnemonicParsing="false" onAction="#deleteDate" prefHeight="31.0" prefWidth="166.0" text="Delete Date" />
+      <TextField fx:id="studentSurnameTextField" layoutX="291.0" layoutY="114.0" prefHeight="31.0" prefWidth="105.0" />
+      <Text layoutX="14.0" layoutY="30.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Group" />
+      <Text layoutX="217.0" layoutY="29.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Student" />
+      <Text layoutX="426.0" layoutY="29.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Date" />
+      <Text layoutX="14.0" layoutY="101.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Group name" />
+      <Text layoutX="193.0" layoutY="100.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Name" />
+      <Text layoutX="291.0" layoutY="99.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Surname" />
+      <Text layoutX="428.0" layoutY="100.0" strokeType="OUTSIDE" strokeWidth="0.0" text="Date" />
+   </children>
+</AnchorPane>

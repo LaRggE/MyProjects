@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.text.*?>
+<?import javafx.scene.control.*?>
+<?import java.lang.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+
+<GridPane alignment="center" hgap="10" vgap="10" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="student.view.AddGroupController">
+   <columnConstraints>
+      <ColumnConstraints />
+   </columnConstraints>
+   <rowConstraints>
+      <RowConstraints />
+      <RowConstraints />
+   </rowConstraints>
+   <children>
+      <Pane prefHeight="120.0" prefWidth="302.0" GridPane.rowIndex="1">
+         <children>
+            <TextField fx:id="groupTextField" layoutX="14.0" layoutY="28.0" prefHeight="31.0" prefWidth="176.0" />
+            <Button fx:id="submitGroup" layoutX="14.0" layoutY="70.0" mnemonicParsing="false" onAction="#pressSubmitGroupButton" text="Submit" />
+            <Text layoutX="14.0" layoutY="20.0" strokeType="OUTSIDE" strokeWidth="0.0" text="New Group Name" />
+         </children></Pane>
+   </children>
+</GridPane>
