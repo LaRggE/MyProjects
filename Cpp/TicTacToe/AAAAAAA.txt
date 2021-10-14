@@ -1,0 +1,1 @@
+gcc -o file8 main.c AI.c draw.c logic.c placepoint.c playermovement.c restart.c saveload.c
